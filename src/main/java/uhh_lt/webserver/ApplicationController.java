@@ -42,7 +42,7 @@ public class ApplicationController {
     }
 
     @RequestMapping("/fea")
-    String hallo(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "amount", defaultValue = "0") String amount) throws IOException, SolrServerException {
+    String hallo(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit) throws IOException, SolrServerException {
         int actual_offset;
         int actual_amount;
         int upper_boundary;
@@ -57,13 +57,13 @@ public class ApplicationController {
         catch(NumberFormatException e) {
 
             actual_offset = 0;
-            amount = "0";
+            upper_limit = "0";
         }
 
 
 
         try {
-            upper_boundary = Integer.parseInt(amount);
+            upper_boundary = Integer.parseInt(upper_limit);
 
         } catch(NumberFormatException e) {
 
@@ -109,7 +109,7 @@ public class ApplicationController {
             org.json.JSONObject totalresult = new org.json.JSONObject();
 
             try {
-                totalresult.put("results_count", queryResults.size());
+                totalresult.put("results_count", queryResults.getNumFound());
                 totalresult.put("data", result);
             }
 
