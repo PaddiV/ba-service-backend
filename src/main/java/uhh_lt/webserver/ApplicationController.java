@@ -40,7 +40,7 @@ public class ApplicationController {
             return generateTextResponse(word);
         }
     }
-
+    @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/fea")
     String hallo(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit) throws IOException, SolrServerException {
         int actual_offset;
@@ -78,7 +78,7 @@ public class ApplicationController {
         }
         else
         {
-            actual_amount = (upper_boundary - actual_offset);
+            actual_amount = (upper_boundary - actual_offset + 1);
         }
 
 
