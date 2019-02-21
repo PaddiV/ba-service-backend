@@ -42,16 +42,53 @@ public class ApplicationController {
     }
 
     @RequestMapping("/fea")
-    String hallo(@RequestParam(value = "question", defaultValue = "") String question ,@RequestParam(value = "offset", defaultValue = "0") Integer offset) throws IOException, SolrServerException
-    {
+    String hallo(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "amount", defaultValue = "0") String amount) throws IOException, SolrServerException {
+        int actual_offset;
+        int actual_amount;
+        int upper_boundary;
+
+
+        try {
+
+            actual_offset = Integer.parseInt(offset);
+
+        }
+
+        catch(NumberFormatException e) {
+
+            actual_offset = 0;
+            amount = "0";
+        }
+
+
+
+        try {
+            upper_boundary = Integer.parseInt(amount);
+
+        } catch(NumberFormatException e) {
+
+            upper_boundary = 0;
+        }
+
+
+
+        if ((upper_boundary- actual_offset) < 0)
+        {
+            actual_amount = 0;
+        }
+        else
+        {
+            actual_amount = (upper_boundary - actual_offset);
+        }
+
+
 
         SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
-
         SolrQuery query = new SolrQuery();
-        query.setQuery("T_Subject:"+ question);
-        //query.addFilterQuery("T_Subject":question);
-        query.setFields("id","T_Date","T_Subject","T_Message","R_Message");
-        query.setStart(offset);
+        query.setQuery("T_Subject:" + question);
+        query.setFields("id", "T_Date", "T_Subject", "T_Message", "R_Message");
+        query.setStart(actual_offset);
+        query.setRows(actual_amount);
         org.json.JSONArray result = new org.json.JSONArray();
         QueryResponse response = client.query(query);
         SolrDocumentList queryResults = response.getResults();
@@ -64,15 +101,27 @@ public class ApplicationController {
                 obj.put("T_Subject", queryResults.get(i).get("T_Subject"));
                 obj.put("T_Message", queryResults.get(i).get("T_Message"));
                 obj.put("R_Message", queryResults.get(i).get("R_Message"));
+            } catch (JSONException error) {
+                System.out.println(error);
             }
-            catch (JSONException error)
-                {System.out.println(error);}
-
             result.put(obj);
-
         }
-        return result.toString();
+            org.json.JSONObject totalresult = new org.json.JSONObject();
+
+            try {
+                totalresult.put("results_count", queryResults.size());
+                totalresult.put("data", result);
+            }
+
+            catch (JSONException error)
+            {
+                System.out.println(error);
+            }
+
+        return totalresult.toString();
     }
+
+
 
     private String generateJSONResponse(String input) {
         JSONObject out = new JSONObject();
