@@ -1,12 +1,24 @@
 package uhh_lt.webserver;
+//import net.sf.json.JSONArray;
 
-import net.sf.json.JSONArray;
-import net.sf.json.JSONObject;
+import org.json.JSONException;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
 import org.jobimtext.api.struct.Order2;
 import org.jobimtext.api.struct.WebThesaurusDatastructure;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
+
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.common.SolrDocumentList;
 
 @RestController
 @EnableAutoConfiguration
@@ -27,6 +39,39 @@ public class ApplicationController {
         } else {
             return generateTextResponse(word);
         }
+    }
+
+    @RequestMapping("/fea")
+    String hallo(@RequestParam(value = "question", defaultValue = "") String question ,@RequestParam(value = "offset", defaultValue = "0") Integer offset) throws IOException, SolrServerException
+    {
+
+        SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
+
+        SolrQuery query = new SolrQuery();
+        query.setQuery("T_Subject:"+ question);
+        //query.addFilterQuery("T_Subject":question);
+        query.setFields("id","T_Date","T_Subject","T_Message","R_Message");
+        query.setStart(offset);
+        org.json.JSONArray result = new org.json.JSONArray();
+        QueryResponse response = client.query(query);
+        SolrDocumentList queryResults = response.getResults();
+        for (int i = 0; i < queryResults.size(); ++i) {
+            org.json.JSONObject obj = new org.json.JSONObject();
+
+            try {
+                obj.put("id", queryResults.get(i).get("id"));
+                obj.put("T_Date", queryResults.get(i).get("T_Date"));
+                obj.put("T_Subject", queryResults.get(i).get("T_Subject"));
+                obj.put("T_Message", queryResults.get(i).get("T_Message"));
+                obj.put("R_Message", queryResults.get(i).get("R_Message"));
+            }
+            catch (JSONException error)
+                {System.out.println(error);}
+
+            result.put(obj);
+
+        }
+        return result.toString();
     }
 
     private String generateJSONResponse(String input) {
