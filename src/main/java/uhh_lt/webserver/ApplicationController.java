@@ -85,7 +85,7 @@ public class ApplicationController {
 
         SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
         SolrQuery query = new SolrQuery();
-        query.setQuery("T_Subject:" + question);
+        query.setQuery("T_Subject:*" + question + "*");
         query.setFields("id", "T_Date", "T_Subject", "T_Message", "R_Message");
         query.setStart(actual_offset);
         query.setRows(actual_amount);
