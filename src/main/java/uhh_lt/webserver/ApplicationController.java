@@ -1,6 +1,7 @@
 package uhh_lt.webserver;
 //import net.sf.json.JSONArray;
 
+import org.apache.pig.SortColInfo;
 import org.json.JSONException;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -85,8 +86,9 @@ public class ApplicationController {
 
         SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
         SolrQuery query = new SolrQuery();
-        query.setQuery("T_Subject:*" + question + "*");
-        query.setFields("id", "T_Date", "T_Subject", "T_Message", "R_Message");
+        query.setQuery("T_Message:"+ question);// OR "T_Keywords:*"+ -Keywords-);
+        query.set("fl", "id, T_Date, T_Subject, T_Message, R_Message, score");
+        query.addSort("score", SolrQuery.ORDER.desc);
         query.setStart(actual_offset);
         query.setRows(actual_amount);
         org.json.JSONArray result = new org.json.JSONArray();
@@ -101,6 +103,7 @@ public class ApplicationController {
                 obj.put("T_Subject", queryResults.get(i).get("T_Subject"));
                 obj.put("T_Message", queryResults.get(i).get("T_Message"));
                 obj.put("R_Message", queryResults.get(i).get("R_Message"));
+                obj.put("score", queryResults.get(i).get("score"));
             } catch (JSONException error) {
                 System.out.println(error);
             }
