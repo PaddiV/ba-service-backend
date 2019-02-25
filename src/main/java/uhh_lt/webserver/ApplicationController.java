@@ -25,9 +25,7 @@ import org.apache.solr.common.SolrDocumentList;
 @EnableAutoConfiguration
 public class ApplicationController {
 
-
     private static WebThesaurusDatastructure dt;
-
 
     @RequestMapping("/expansions")
     String home(@RequestParam(value = "word", defaultValue = "") String word, @RequestParam(value = "format", defaultValue = "text") String format) {
@@ -41,48 +39,32 @@ public class ApplicationController {
             return generateTextResponse(word);
         }
     }
+
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/fea")
-    String hallo(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit) throws IOException, SolrServerException {
+    String fea_home(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit) throws IOException, SolrServerException {
         int actual_offset;
         int actual_amount;
         int upper_boundary;
 
-
         try {
-
             actual_offset = Integer.parseInt(offset);
-
-        }
-
-        catch(NumberFormatException e) {
-
+        } catch(NumberFormatException e) {
             actual_offset = 0;
             upper_limit = "0";
         }
 
-
-
         try {
             upper_boundary = Integer.parseInt(upper_limit);
-
         } catch(NumberFormatException e) {
-
             upper_boundary = 0;
         }
 
-
-
-        if ((upper_boundary- actual_offset) < 0)
-        {
+        if ((upper_boundary- actual_offset) < 0) {
             actual_amount = 0;
-        }
-        else
-        {
+        } else {
             actual_amount = (upper_boundary - actual_offset + 1);
         }
-
-
 
         SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
         SolrQuery query = new SolrQuery();
@@ -96,7 +78,6 @@ public class ApplicationController {
         SolrDocumentList queryResults = response.getResults();
         for (int i = 0; i < queryResults.size(); ++i) {
             org.json.JSONObject obj = new org.json.JSONObject();
-
             try {
                 obj.put("id", queryResults.get(i).get("id"));
                 obj.put("T_Date", queryResults.get(i).get("T_Date"));
@@ -109,39 +90,29 @@ public class ApplicationController {
             }
             result.put(obj);
         }
-            org.json.JSONObject totalresult = new org.json.JSONObject();
-
-            try {
-                totalresult.put("results_count", queryResults.getNumFound());
-                totalresult.put("data", result);
-            }
-
-            catch (JSONException error)
-            {
-                System.out.println(error);
-            }
-
+        org.json.JSONObject totalresult = new org.json.JSONObject();
+        try {
+            totalresult.put("results_count", queryResults.getNumFound());
+            totalresult.put("data", result);
+        } catch (JSONException error) {
+            System.out.println(error);
+        }
         return totalresult.toString();
     }
-
-
 
     private String generateJSONResponse(String input) {
         JSONObject out = new JSONObject();
         out.put("input", input);
-
         JSONArray expansions = new JSONArray();
         for (Order2 exp : dt.getSimilarTerms(input)) {
             expansions.add(exp.key);
         }
         out.put("expansions", expansions);
-
         return out.toString();
     }
 
     private String generateTextResponse(String input) {
         StringBuilder output = new StringBuilder();
-
         output.append("input: " + input);
         output.append("\nexpansions:");
         for (Order2 exp : dt.getSimilarTerms(input)) {
