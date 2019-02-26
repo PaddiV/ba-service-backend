@@ -103,13 +103,18 @@ public class ApplicationController {
         // Prepare keywords determined by Watson for Solr query.
         List<KeywordsResult> response_keywords = watson_response.getKeywords();
         String keywords_query_string = "";
-        for (KeywordsResult result: response_keywords) {
-            keywords_query_string += ("*" + result.getText() + "* ");
-        };
+        if (response_keywords.size() != 0) {
+            for (KeywordsResult result: response_keywords) {
+                keywords_query_string += ("*" + result.getText() + "* ");
+            };
+        } else {
+            keywords_query_string = "*";
+        }
+
 
         SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
         SolrQuery query = new SolrQuery();
-        query.setQuery("T_Message:"+ question + "OR Keywords:(" + keywords_query_string + ")");
+        query.setQuery("T_Message:"+ question + " OR Keywords:(" + keywords_query_string + ")");
         query.set("fl", "id, T_Date, T_Subject, T_Message, R_Message, score");
         query.addSort("score", SolrQuery.ORDER.desc);
         query.setStart(actual_offset);
