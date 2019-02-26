@@ -13,6 +13,8 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -21,11 +23,18 @@ import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocumentList;
 
+import com.ibm.watson.developer_cloud.natural_language_understanding.v1.NaturalLanguageUnderstanding;
+import com.ibm.watson.developer_cloud.natural_language_understanding.v1.model.*;
+import com.ibm.watson.developer_cloud.service.security.IamOptions;
+
 @RestController
 @EnableAutoConfiguration
 public class ApplicationController {
 
     private static WebThesaurusDatastructure dt;
+    private static int amount_watson_keywords = 10;
+    //TODO: REMOVE API KEY BEFORE COMMITTING
+    private static String api_key = "";
 
     @RequestMapping("/expansions")
     String home(@RequestParam(value = "word", defaultValue = "") String word, @RequestParam(value = "format", defaultValue = "text") String format) {
@@ -66,9 +75,41 @@ public class ApplicationController {
             actual_amount = (upper_boundary - actual_offset + 1);
         }
 
+        // Get necessary data determined by Watson.
+        IamOptions options = new IamOptions.Builder()
+                .apiKey(api_key)
+                .build();
+
+        NaturalLanguageUnderstanding naturalLanguageUnderstanding = new NaturalLanguageUnderstanding("2018-11-16", options);
+        naturalLanguageUnderstanding.setEndPoint("https://gateway-lon.watsonplatform.net/natural-language-understanding/api/");
+
+        KeywordsOptions keywords= new KeywordsOptions.Builder()
+                .limit(amount_watson_keywords)
+                .build();
+
+        Features features = new Features.Builder()
+                .keywords(keywords)
+                .build();
+
+        AnalyzeOptions parameters = new AnalyzeOptions.Builder()
+                .text(question)
+                .features(features)
+                .build();
+
+        AnalysisResults watson_response = naturalLanguageUnderstanding
+                .analyze(parameters)
+                .execute();
+
+        // Prepare keywords determined by Watson for Solr query.
+        List<KeywordsResult> response_keywords = watson_response.getKeywords();
+        String keywords_query_string = "";
+        for (KeywordsResult result: response_keywords) {
+            keywords_query_string += ("*" + result.getText() + "* ");
+        };
+
         SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
         SolrQuery query = new SolrQuery();
-        query.setQuery("T_Message:"+ question);// OR "T_Keywords:*"+ -Keywords-);
+        query.setQuery("T_Message:"+ question + "OR Keywords:(" + keywords_query_string + ")");
         query.set("fl", "id, T_Date, T_Subject, T_Message, R_Message, score");
         query.addSort("score", SolrQuery.ORDER.desc);
         query.setStart(actual_offset);
