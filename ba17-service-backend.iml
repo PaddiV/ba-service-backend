@@ -118,7 +118,6 @@
     <orderEntry type="library" name="Maven: com.squareup.okhttp3:logging-interceptor:3.11.0" level="project" />
     <orderEntry type="library" name="Maven: com.squareup.okhttp3:okhttp-urlconnection:3.11.0" level="project" />
     <orderEntry type="library" name="Maven: com.google.code.gson:gson:2.3.1" level="project" />
-    <orderEntry type="library" name="Maven: org.apache.commons:commons-lang3:3.5" level="project" />
     <orderEntry type="library" name="Maven: org.glassfish.jersey.bundles.repackaged:jersey-jsr166e:2.25.1" level="project" />
     <orderEntry type="library" name="Maven: com.ibm.watson.developer_cloud:discovery:6.11.0" level="project" />
     <orderEntry type="library" name="Maven: com.ibm.watson.developer_cloud:language-translator:6.11.0" level="project" />
@@ -151,5 +150,6 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="Maven: org.json:json:20090211" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.commons:commons-lang3:3.5" level="project" />
   </component>
 </module>

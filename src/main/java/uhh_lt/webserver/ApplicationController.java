@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.*;
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -22,6 +23,7 @@ import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocumentList;
+import org.apache.commons.lang.StringUtils;
 
 import com.ibm.watson.developer_cloud.natural_language_understanding.v1.NaturalLanguageUnderstanding;
 import com.ibm.watson.developer_cloud.natural_language_understanding.v1.model.*;
@@ -32,9 +34,17 @@ import com.ibm.watson.developer_cloud.service.security.IamOptions;
 public class ApplicationController {
 
     private static WebThesaurusDatastructure dt;
+    // Determines how many keywords Watson should return for given question.
     private static int amount_watson_keywords = 10;
     //TODO: REMOVE API KEY BEFORE COMMITTING
     private static String api_key = "";
+    // Variables for answer complexity check.
+    private static int min_text_length_to_match = 200;
+    private static int max_text_length_to_match = 500;
+    private static int avg_sentence_length_to_match = 15;
+    private static int avg_sentence_length_allowed_variance = 5;
+    private static int min_noun_usage_to_match = 40;
+    private static int min_avg_noun_usage_to_match = 1000;
 
     @RequestMapping("/expansions")
     String home(@RequestParam(value = "word", defaultValue = "") String word, @RequestParam(value = "format", defaultValue = "text") String format) {
@@ -111,7 +121,6 @@ public class ApplicationController {
             keywords_query_string = "*";
         }
 
-
         SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
         SolrQuery query = new SolrQuery();
         query.setQuery("T_Message:"+ question + " OR Keywords:(" + keywords_query_string + ")");
@@ -144,6 +153,102 @@ public class ApplicationController {
             System.out.println(error);
         }
         return totalresult.toString();
+    }
+
+    /**
+     * Checks the given text for complexity and returns a JSONObject with remarks and/or warnings.
+     *
+     * @param text text to be checked
+     */
+    @RequestMapping("/text_check")
+    String text_check(@RequestParam(value = "text", defaultValue = "") String text) {
+
+        // Split text into single words, remove first word, words after dots and lowercase words. Thus only (most) nouns should remain.
+        String[] split_text = text.split(" ");
+        List<String> nouns = new ArrayList<String>();
+        Pattern pattern = Pattern.compile("[^a-zA-ZßäÄöÖüÜ0-9]$");
+        for (int i = 1; i <= (split_text.length - 1); i++) {
+            // Add uppercase words.
+            if (Character.isUpperCase(split_text[i].charAt(0))) {
+                // Remove everything but letters of the German alphabet, numbers and hyphens.
+                String noun_to_add = split_text[i].replaceAll("[^a-zA-ZßäÄöÖüÜ0-9/-]", "");
+                // Remove last char manually in case of it being a hyphen.
+                Matcher matcher = pattern.matcher(noun_to_add);
+                if (matcher.find()) {
+                    noun_to_add = noun_to_add.substring(0, noun_to_add.length() - 1);
+                }
+                nouns.add(noun_to_add);
+            }
+            // Ignore words after a dot, question mark or exclamation mark.
+            char last_char_of_word = split_text[i].charAt(split_text[i].length() - 1);
+            if (last_char_of_word == '.' || last_char_of_word == '?' || last_char_of_word == '!') {
+                i++;
+            }
+        }
+
+        // Check usage of each noun and keep track of especially rarely used nouns for warnings.
+        List<Long> nouns_usages = new ArrayList<Long>();
+        List<String> problematic_nouns = new ArrayList<String>();
+        for (String noun: nouns) {
+            long noun_usage = dt.getTermCount(noun);
+            nouns_usages.add(noun_usage);
+            if (noun_usage < min_noun_usage_to_match) {
+                problematic_nouns.add(noun);
+            }
+        }
+
+        // Check if text is too short or too long.
+        Rating text_length_rating;
+        if (text.length() > min_text_length_to_match) {
+            if (text.length() < max_text_length_to_match) {
+                text_length_rating = Rating.OK;
+            } else {
+                text_length_rating = Rating.LONG;
+            }
+        } else {
+            text_length_rating = Rating.SHORT;
+        }
+
+        // Check if the average word count per sentence is too short or too long.
+        String[] split_sentences = text.split("[\\.\\?\\!]");
+        double avg_sentence_word_count = 0;
+        for (String sentence: split_sentences) {
+            avg_sentence_word_count = avg_sentence_word_count + StringUtils.countMatches(sentence.trim(), " ") + 1;
+        }
+        avg_sentence_word_count = avg_sentence_word_count / split_sentences.length;
+
+        Rating avg_sentence_length_rating;
+        if (avg_sentence_word_count < (avg_sentence_length_to_match - avg_sentence_length_allowed_variance)) {
+            avg_sentence_length_rating = Rating.SHORT;
+        } else {
+            if (avg_sentence_word_count > (avg_sentence_length_to_match + avg_sentence_length_allowed_variance)) {
+                avg_sentence_length_rating = Rating.LONG;
+            } else {
+                avg_sentence_length_rating = Rating.OK;
+            }
+        }
+
+        // Check if the overall usage of nouns is too low.
+        Long avg_nouns_usage = 0l;
+        for (Long usage: nouns_usages) {
+            avg_nouns_usage = avg_nouns_usage + usage;
+        }
+        avg_nouns_usage = avg_nouns_usage / nouns_usages.size();
+
+        Rating nouns_used_rating;
+        if (avg_nouns_usage < min_avg_noun_usage_to_match) {
+            nouns_used_rating = Rating.BAD;
+        } else {
+            nouns_used_rating = Rating.GOOD;
+        }
+
+        JSONObject response = new JSONObject();
+        response.put("text_length", text_length_rating.toString());
+        response.put("avg_sentence_length", avg_sentence_length_rating.toString());
+        response.put("nouns_used", nouns_used_rating.toString());
+        response.put("problematic_nouns", problematic_nouns);
+
+        return response.toString();
     }
 
     private String generateJSONResponse(String input) {
