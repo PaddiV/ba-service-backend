@@ -36,6 +36,7 @@ public class ApplicationController {
     private static WebThesaurusDatastructure dt;
     // Determines how many keywords Watson should return for given question.
     private static int amount_watson_keywords = 10;
+    private static int amount_watson_concepts = 10;
     //TODO: REMOVE API KEY BEFORE COMMITTING
     private static String api_key = "";
     // Variables for answer complexity check.
@@ -97,9 +98,15 @@ public class ApplicationController {
                 .limit(amount_watson_keywords)
                 .build();
 
+        ConceptsOptions concepts= new ConceptsOptions.Builder()
+                .limit(amount_watson_concepts)
+                .build();
+
         Features features = new Features.Builder()
                 .keywords(keywords)
+                .concepts(concepts)
                 .build();
+
 
         AnalyzeOptions parameters = new AnalyzeOptions.Builder()
                 .text(question)
@@ -121,9 +128,20 @@ public class ApplicationController {
             keywords_query_string = "*";
         }
 
+        // Prepare concepts determined by Watson for Solr query.
+        List<ConceptsResult> response_concepts = watson_response.getConcepts();
+        String concepts_query_string = "";
+        if (response_concepts.size() !=0){
+            for (ConceptsResult concepts_result: response_concepts) {
+                concepts_query_string += ("*" + concepts_result.getText()+ "* ");
+            }
+        } else {
+            concepts_query_string = "*";
+        }
+
         SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
         SolrQuery query = new SolrQuery();
-        query.setQuery("T_Message:"+ question + " OR Keywords:(" + keywords_query_string + ")");
+        query.setQuery("T_Message:"+ question + " OR Keywords:(" + keywords_query_string + ")" + " OR Concepts:(" + concepts_query_string + ")");
         query.set("fl", "id, T_Date, T_Subject, T_Message, R_Message, score");
         query.addSort("score", SolrQuery.ORDER.desc);
         query.setStart(actual_offset);
