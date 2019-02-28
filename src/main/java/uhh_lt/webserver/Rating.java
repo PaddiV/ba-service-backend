@@ -7,6 +7,7 @@ package uhh_lt.webserver;
 public enum Rating {
     GOOD ("good"),
     BAD("bad"),
+    NONE ("none"),
     OK("ok"),
     SHORT("short"),
     LONG("long");

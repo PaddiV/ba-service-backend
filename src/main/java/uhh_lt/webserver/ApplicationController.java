@@ -211,35 +211,43 @@ public class ApplicationController {
 
         // Check if the average word count per sentence is too short or too long.
         String[] split_sentences = text.split("[\\.\\?\\!]");
-        double avg_sentence_word_count = 0;
-        for (String sentence: split_sentences) {
-            avg_sentence_word_count = avg_sentence_word_count + StringUtils.countMatches(sentence.trim(), " ") + 1;
-        }
-        avg_sentence_word_count = avg_sentence_word_count / split_sentences.length;
-
         Rating avg_sentence_length_rating;
-        if (avg_sentence_word_count < (avg_sentence_length_to_match - avg_sentence_length_allowed_variance)) {
-            avg_sentence_length_rating = Rating.SHORT;
-        } else {
-            if (avg_sentence_word_count > (avg_sentence_length_to_match + avg_sentence_length_allowed_variance)) {
-                avg_sentence_length_rating = Rating.LONG;
-            } else {
-                avg_sentence_length_rating = Rating.OK;
+        if (split_sentences.length != 0) {
+            double avg_sentence_word_count = 0;
+            for (String sentence : split_sentences) {
+                avg_sentence_word_count = avg_sentence_word_count + StringUtils.countMatches(sentence.trim(), " ") + 1;
             }
+            avg_sentence_word_count = avg_sentence_word_count / split_sentences.length;
+
+            if (avg_sentence_word_count < (avg_sentence_length_to_match - avg_sentence_length_allowed_variance)) {
+                avg_sentence_length_rating = Rating.SHORT;
+            } else {
+                if (avg_sentence_word_count > (avg_sentence_length_to_match + avg_sentence_length_allowed_variance)) {
+                    avg_sentence_length_rating = Rating.LONG;
+                } else {
+                    avg_sentence_length_rating = Rating.OK;
+                }
+            }
+        } else {
+            avg_sentence_length_rating = Rating.NONE;
         }
 
         // Check if the overall usage of nouns is too low.
-        Long avg_nouns_usage = 0l;
-        for (Long usage: nouns_usages) {
-            avg_nouns_usage = avg_nouns_usage + usage;
-        }
-        avg_nouns_usage = avg_nouns_usage / nouns_usages.size();
-
         Rating nouns_used_rating;
-        if (avg_nouns_usage < min_avg_noun_usage_to_match) {
-            nouns_used_rating = Rating.BAD;
+        if (nouns_usages.size() != 0) {
+            Long avg_nouns_usage = 0l;
+            for (Long usage: nouns_usages) {
+                avg_nouns_usage = avg_nouns_usage + usage;
+            }
+            avg_nouns_usage = avg_nouns_usage / nouns_usages.size();
+
+            if (avg_nouns_usage < min_avg_noun_usage_to_match) {
+                nouns_used_rating = Rating.BAD;
+            } else {
+                nouns_used_rating = Rating.GOOD;
+            }
         } else {
-            nouns_used_rating = Rating.GOOD;
+            nouns_used_rating = Rating.NONE;
         }
 
         JSONObject response = new JSONObject();
