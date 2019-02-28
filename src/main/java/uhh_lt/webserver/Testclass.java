@@ -62,6 +62,7 @@ public class Testclass {
                     if (id == (long) entry.getValue()) {
                         System.out.println(zaehler);
                         System.out.println(id);
+                        //System.out.println(jsonObject1.get("score"));
 
                     }
                     zaehler++;
