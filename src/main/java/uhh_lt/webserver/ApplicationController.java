@@ -120,9 +120,11 @@ public class ApplicationController {
         // Prepare keywords determined by Watson for Solr query.
         List<KeywordsResult> response_keywords = watson_response.getKeywords();
         String keywords_query_string = "";
+        String keywords_string = "";
         if (response_keywords.size() != 0) {
             for (KeywordsResult result: response_keywords) {
                 keywords_query_string += ("*" + result.getText() + "* ");
+                keywords_string += (result.getText()+" ");
             };
         } else {
             keywords_query_string = "*";
@@ -131,9 +133,11 @@ public class ApplicationController {
         // Prepare concepts determined by Watson for Solr query.
         List<ConceptsResult> response_concepts = watson_response.getConcepts();
         String concepts_query_string = "";
+        String concepts_string = "";
         if (response_concepts.size() !=0){
             for (ConceptsResult concepts_result: response_concepts) {
                 concepts_query_string += ("*" + concepts_result.getText()+ "* ");
+                concepts_string += (concepts_result.getText()+" ");
             }
         } else {
             concepts_query_string = "*";
@@ -141,7 +145,7 @@ public class ApplicationController {
 
         SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
         SolrQuery query = new SolrQuery();
-        query.setQuery("T_Message:"+ question + " OR Keywords:(" + keywords_query_string + ")" + " OR Concepts:(" + concepts_query_string + ")");
+        query.setQuery("T_Message:"+ question + " OR Keywords:(" + keywords_query_string + ")" + " OR Concepts:(" + concepts_query_string + ")");// + " OR Tags:( + TAGS + ")");
         query.set("fl", "id, T_Date, T_Subject, T_Message, R_Message, score");
         query.addSort("score", SolrQuery.ORDER.desc);
         query.setStart(actual_offset);
@@ -167,6 +171,9 @@ public class ApplicationController {
         try {
             totalresult.put("results_count", queryResults.getNumFound());
             totalresult.put("data", result);
+            totalresult.put("Keywords", keywords_string);
+            totalresult.put("Concepts", concepts_string);
+            //totalresult.put("Tags", tags);
         } catch (JSONException error) {
             System.out.println(error);
         }
@@ -277,7 +284,69 @@ public class ApplicationController {
         return response.toString();
     }
 
-    private String generateJSONResponse(String input) {
+
+
+
+    @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
+    @RequestMapping("/costum_fea")
+    String fea_costum(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit, @RequestParam(value = "keywords", defaultValue = "*") String keywords, @RequestParam(value = "tags", defaultValue = "*") String tags, @RequestParam(value = "concepts" , defaultValue = "*") String concepts ) throws IOException, SolrServerException {
+        int actual_offset;
+        int actual_amount;
+        int upper_boundary;
+
+        try {
+            actual_offset = Integer.parseInt(offset);
+        } catch(NumberFormatException e) {
+            actual_offset = 0;
+            upper_limit = "0";
+        }
+
+        try {
+            upper_boundary = Integer.parseInt(upper_limit);
+        } catch(NumberFormatException e) {
+            upper_boundary = 0;
+        }
+
+        if ((upper_boundary- actual_offset) < 0) {
+            actual_amount = 0;
+        } else {
+            actual_amount = (upper_boundary - actual_offset + 1);
+        }
+        SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
+        SolrQuery query = new SolrQuery();
+        query.setQuery("T_Message:"+ question + " OR Keywords:(" + keywords + ")" + " OR Concepts:(" + concepts + ")");// + " OR Tags:( + TAGS + ")");
+        query.set("fl", "id, T_Date, T_Subject, T_Message, R_Message, score");
+        query.addSort("score", SolrQuery.ORDER.desc);
+        query.setStart(actual_offset);
+        query.setRows(actual_amount);
+        org.json.JSONArray result = new org.json.JSONArray();
+        QueryResponse response = client.query(query);
+        SolrDocumentList queryResults = response.getResults();
+        for (int i = 0; i < queryResults.size(); ++i) {
+            org.json.JSONObject obj = new org.json.JSONObject();
+            try {
+                obj.put("id", queryResults.get(i).get("id"));
+                obj.put("T_Date", queryResults.get(i).get("T_Date"));
+                obj.put("T_Subject", queryResults.get(i).get("T_Subject"));
+                obj.put("T_Message", queryResults.get(i).get("T_Message"));
+                obj.put("R_Message", queryResults.get(i).get("R_Message"));
+                obj.put("score", queryResults.get(i).get("score"));
+            } catch (JSONException error) {
+                System.out.println(error);
+            }
+            result.put(obj);
+        }
+        org.json.JSONObject totalresult = new org.json.JSONObject();
+        try {
+            totalresult.put("results_count", queryResults.getNumFound());
+            totalresult.put("data", result);
+        } catch (JSONException error) {
+            System.out.println(error);
+        }
+        return totalresult.toString();
+    }
+
+        private String generateJSONResponse(String input) {
         JSONObject out = new JSONObject();
         out.put("input", input);
         JSONArray expansions = new JSONArray();
