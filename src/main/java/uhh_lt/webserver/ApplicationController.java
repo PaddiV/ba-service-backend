@@ -12,7 +12,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.*;
@@ -24,6 +27,9 @@ import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.commons.lang.StringUtils;
+import opennlp.tools.sentdetect.*;
+import opennlp.tools.tokenize.*;
+import opennlp.tools.postag.*;
 
 import com.ibm.watson.developer_cloud.natural_language_understanding.v1.NaturalLanguageUnderstanding;
 import com.ibm.watson.developer_cloud.natural_language_understanding.v1.model.*;
@@ -46,6 +52,7 @@ public class ApplicationController {
     private static int avg_sentence_length_allowed_variance = 5;
     private static int min_noun_usage_to_match = 40;
     private static int min_avg_noun_usage_to_match = 1000;
+    private static double noun_to_verb_ratio_to_match = 2.5;
 
     // stores the question
     private String current_question = "";
@@ -197,28 +204,55 @@ public class ApplicationController {
      */
     @RequestMapping("/text_check")
     String text_check(@RequestParam(value = "text", defaultValue = "") String text) {
-
-        // Split text into single words, remove first word, words after dots and lowercase words. Thus only (most) nouns should remain.
-        String[] split_text = text.split(" ");
+        Rating noun_to_verb_ratio_rating = Rating.NONE;
         List<String> nouns = new ArrayList<String>();
-        Pattern pattern = Pattern.compile("[^a-zA-ZßäÄöÖüÜ0-9]$");
-        for (int i = 1; i <= (split_text.length - 1); i++) {
-            // Add uppercase words.
-            if (Character.isUpperCase(split_text[i].charAt(0))) {
-                // Remove everything but letters of the German alphabet, numbers and hyphens.
-                String noun_to_add = split_text[i].replaceAll("[^a-zA-ZßäÄöÖüÜ0-9/-]", "");
-                // Remove last char manually in case of it being a hyphen.
-                Matcher matcher = pattern.matcher(noun_to_add);
-                if (matcher.find()) {
-                    noun_to_add = noun_to_add.substring(0, noun_to_add.length() - 1);
+
+        // Sentence detection
+        try (InputStream sentence_model_in = new FileInputStream("de-sent.bin")) {
+            int nouns_count, verbs_count;
+            nouns_count = verbs_count = 0;
+            SentenceModel sentence_model = new SentenceModel(sentence_model_in);
+            SentenceDetectorME sentenceDetector = new SentenceDetectorME(sentence_model);
+            String sentences[] = sentenceDetector.sentDetect(text);
+            // Tokenization per sentence
+            try (InputStream token_model_in = new FileInputStream("de-token.bin")) {
+                TokenizerModel token_model = new TokenizerModel(token_model_in);
+                Tokenizer tokenizer = new TokenizerME(token_model);
+                for (String sentence: sentences) {
+                    String tokens[] = tokenizer.tokenize(sentence);
+                    // POS tagging all tokens
+                    try (InputStream pos_model_in = new FileInputStream("de-pos-maxent.bin")){
+                        POSModel model = new POSModel(pos_model_in);
+                        POSTaggerME tagger = new POSTaggerME(model);
+                        String tags[] = tagger.tag(tokens);
+                        // Count all nouns (tag starting with 'N') and verbs (tag starting with 'V').
+                        int i = 0;
+                        for (String tag: tags) {
+                            if (tag.charAt(0) == 'N') {
+                                nouns_count++;
+                                // Not great, but the way the tagger works way more readable than the alternative.
+                                nouns.add(tokens[i]);
+                            } else if (tag.charAt(0) == 'V') {
+                                verbs_count++;
+                            }
+                            i++;
+                        }
+                    }
                 }
-                nouns.add(noun_to_add);
             }
-            // Ignore words after a dot, question mark or exclamation mark.
-            char last_char_of_word = split_text[i].charAt(split_text[i].length() - 1);
-            if (last_char_of_word == '.' || last_char_of_word == '?' || last_char_of_word == '!') {
-                i++;
+            // Determine noun_to_verb_ratio and evaluate it.
+            if (nouns_count != 0 && verbs_count != 0) {
+                double noun_to_verb_ratio = nouns_count / verbs_count;
+                if (noun_to_verb_ratio < noun_to_verb_ratio_to_match) {
+                    noun_to_verb_ratio_rating = Rating.GOOD;
+                } else {
+                    noun_to_verb_ratio_rating = Rating.BAD;
+                }
             }
+        } catch(FileNotFoundException e) {
+            System.out.println("Uh-oh! File not found. Please make sure you have all necessary OpenNLP files for German sentence detection, tokenization and POS tagging (Maxent).");
+        } catch(IOException e) {
+            System.out.println("Uh-oh! An IO Exception occurred while attempting POS tagging.");
         }
 
         // Check usage of each noun and keep track of especially rarely used nouns for warnings.
@@ -290,6 +324,7 @@ public class ApplicationController {
         response.put("avg_sentence_length", avg_sentence_length_rating.toString());
         response.put("nouns_used", nouns_used_rating.toString());
         response.put("problematic_nouns", problematic_nouns);
+        response.put("nouns_to_verbs_ratio", noun_to_verb_ratio_rating.toString());
 
         return response.toString();
     }
