@@ -47,6 +47,12 @@ public class ApplicationController {
     private static int min_noun_usage_to_match = 40;
     private static int min_avg_noun_usage_to_match = 1000;
 
+    // stores the question
+    private String current_question = "";
+
+    // stores concepts from the question
+    private String current_concepts = "";
+
     @RequestMapping("/expansions")
     String home(@RequestParam(value = "word", defaultValue = "") String word, @RequestParam(value = "format", defaultValue = "text") String format) {
 
@@ -63,6 +69,8 @@ public class ApplicationController {
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/fea")
     String fea_home(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit) throws IOException, SolrServerException {
+        question = question.replace(":", " ");
+        current_question = question;
         int actual_offset;
         int actual_amount;
         int upper_boundary;
@@ -120,11 +128,11 @@ public class ApplicationController {
         // Prepare keywords determined by Watson for Solr query.
         List<KeywordsResult> response_keywords = watson_response.getKeywords();
         String keywords_query_string = "";
-        String keywords_string = "";
+        ArrayList <String> keywords_array = new ArrayList<String>();
         if (response_keywords.size() != 0) {
             for (KeywordsResult result: response_keywords) {
                 keywords_query_string += ("*" + result.getText() + "* ");
-                keywords_string += (result.getText()+" ");
+                keywords_array.add(result.getText());
             };
         } else {
             keywords_query_string = "*";
@@ -133,15 +141,17 @@ public class ApplicationController {
         // Prepare concepts determined by Watson for Solr query.
         List<ConceptsResult> response_concepts = watson_response.getConcepts();
         String concepts_query_string = "";
-        String concepts_string = "";
+        ArrayList <String> concepts_array = new ArrayList<String>();
         if (response_concepts.size() !=0){
             for (ConceptsResult concepts_result: response_concepts) {
                 concepts_query_string += ("*" + concepts_result.getText()+ "* ");
-                concepts_string += (concepts_result.getText()+" ");
+                concepts_array.add(concepts_result.getText());
             }
         } else {
             concepts_query_string = "*";
         }
+
+        current_concepts = concepts_query_string;
 
         SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
         SolrQuery query = new SolrQuery();
@@ -171,8 +181,8 @@ public class ApplicationController {
         try {
             totalresult.put("results_count", queryResults.getNumFound());
             totalresult.put("data", result);
-            totalresult.put("Keywords", keywords_string);
-            totalresult.put("Concepts", concepts_string);
+            totalresult.put("Keywords", keywords_array);
+            totalresult.put("Concepts", concepts_array);
             //totalresult.put("Tags", tags);
         } catch (JSONException error) {
             System.out.println(error);
@@ -289,7 +299,7 @@ public class ApplicationController {
 
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/costum_fea")
-    String fea_costum(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit, @RequestParam(value = "keywords", defaultValue = "*") String keywords, @RequestParam(value = "tags", defaultValue = "*") String tags, @RequestParam(value = "concepts" , defaultValue = "*") String concepts ) throws IOException, SolrServerException {
+    String fea_costum( @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit, @RequestParam(value = "keywords", defaultValue = "*") String keywords, @RequestParam(value = "tags", defaultValue = "*") String tags) throws IOException, SolrServerException {
         int actual_offset;
         int actual_amount;
         int upper_boundary;
@@ -314,7 +324,7 @@ public class ApplicationController {
         }
         SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
         SolrQuery query = new SolrQuery();
-        query.setQuery("T_Message:"+ question + " OR Keywords:(" + keywords + ")" + " OR Concepts:(" + concepts + ")");// + " OR Tags:( + TAGS + ")");
+        query.setQuery("T_Message:"+ current_question + " OR Keywords:(" + keywords + ")" + " OR Concepts:(" + current_concepts + ")");// + " OR Tags:( + TAGS + ")");
         query.set("fl", "id, T_Date, T_Subject, T_Message, R_Message, score");
         query.addSort("score", SolrQuery.ORDER.desc);
         query.setStart(actual_offset);
