@@ -1,7 +1,5 @@
 package uhh_lt.webserver;
-//import net.sf.json.JSONArray;
 
-import org.apache.pig.SortColInfo;
 import org.json.JSONException;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -18,7 +16,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.*;
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -53,12 +50,10 @@ public class ApplicationController {
     private static int min_noun_usage_to_match = 40;
     private static int min_avg_noun_usage_to_match = 1000;
     private static double noun_to_verb_ratio_to_match = 2.5;
-
-    // stores the question
+    // Holds the question received by the last '/fea' request to work on when changing filters with 'custom_fea'.
     private String current_question = "";
-
-    // stores concepts from the question
-    private String current_concepts = "";
+    // Holds the concepts of the question received by the last '/fea' request to work on when changing filters with 'custom_fea'.
+    private String current_concepts_query_string = "";
 
     @RequestMapping("/expansions")
     String home(@RequestParam(value = "word", defaultValue = "") String word, @RequestParam(value = "format", defaultValue = "text") String format) {
@@ -73,6 +68,13 @@ public class ApplicationController {
         }
     }
 
+    /**
+     * Checks the given text for complexity and returns a JSONObject with remarks and/or warnings.
+     *
+     * @param question question to search answers for
+     * @param offset offset for Solr query (used for pagination)
+     * @param upper_limit upper limit for Solr query (used for pagination)
+     */
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/fea")
     String fea_home(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit) throws IOException, SolrServerException {
@@ -124,7 +126,7 @@ public class ApplicationController {
 
 
         AnalyzeOptions parameters = new AnalyzeOptions.Builder()
-                .text(question)
+                .text(current_question)
                 .features(features)
                 .build();
 
@@ -147,22 +149,19 @@ public class ApplicationController {
 
         // Prepare concepts determined by Watson for Solr query.
         List<ConceptsResult> response_concepts = watson_response.getConcepts();
-        String concepts_query_string = "";
         ArrayList <String> concepts_array = new ArrayList<String>();
         if (response_concepts.size() !=0){
             for (ConceptsResult concepts_result: response_concepts) {
-                concepts_query_string += ("*" + concepts_result.getText()+ "* ");
+                current_concepts_query_string += ("*" + concepts_result.getText()+ "* ");
                 concepts_array.add(concepts_result.getText());
             }
         } else {
-            concepts_query_string = "*";
+            current_concepts_query_string = "*";
         }
-
-        current_concepts = concepts_query_string;
 
         SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
         SolrQuery query = new SolrQuery();
-        query.setQuery("T_Message:"+ question + " OR Keywords:(" + keywords_query_string + ")" + " OR Concepts:(" + concepts_query_string + ")");// + " OR Tags:( + TAGS + ")");
+        query.setQuery("T_Message:"+ current_question + " OR Keywords:(" + keywords_query_string + ")" + " OR Concepts:(" + current_concepts_query_string + ")");// + " OR Tags:( + TAGS + ")");
         query.set("fl", "id, T_Date, T_Subject, T_Message, R_Message, score");
         query.addSort("score", SolrQuery.ORDER.desc);
         query.setStart(actual_offset);
@@ -202,6 +201,7 @@ public class ApplicationController {
      *
      * @param text text to be checked
      */
+    @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/text_check")
     String text_check(@RequestParam(value = "text", defaultValue = "") String text) {
         Rating noun_to_verb_ratio_rating = Rating.NONE;
@@ -329,9 +329,13 @@ public class ApplicationController {
         return response.toString();
     }
 
-
-
-
+    /**
+     * Checks the given text for complexity and returns a JSONObject with remarks and/or warnings.
+     *
+     * @param offset offset for Solr query (used for pagination)
+     * @param upper_limit upper limit for Solr query (used for pagination)
+     * @param keywords used for limiting Solr query (filtering)
+     */
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/costum_fea")
     String fea_costum( @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit, @RequestParam(value = "keywords", defaultValue = "*") String keywords, @RequestParam(value = "tags", defaultValue = "*") String tags) throws IOException, SolrServerException {
@@ -359,7 +363,7 @@ public class ApplicationController {
         }
         SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
         SolrQuery query = new SolrQuery();
-        query.setQuery("T_Message:"+ current_question + " OR Keywords:(" + keywords + ")" + " OR Concepts:(" + current_concepts + ")");// + " OR Tags:( + TAGS + ")");
+        query.setQuery("T_Message:"+ current_question + " OR Keywords:(" + keywords + ")" + " OR Concepts:(" + current_concepts_query_string + ")");// + " OR Tags:( + TAGS + ")");
         query.set("fl", "id, T_Date, T_Subject, T_Message, R_Message, score");
         query.addSort("score", SolrQuery.ORDER.desc);
         query.setStart(actual_offset);
