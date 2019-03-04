@@ -166,17 +166,6 @@ public class ApplicationController {
     }
 
     /**
-     * Checks the given text for complexity and returns a JSONObject with remarks and/or warnings.
-     *
-     * @param text text to be checked
-     */
-    @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
-    @RequestMapping("/text_check")
-    String text_check(@RequestParam(value = "text", defaultValue = "") String text) {
-        return TextEvaluator.getEvaluation(text, dt);
-    }
-
-    /**
      * Used for filtering the question query by given tags.
      *
      * @param offset offset for Solr query (used for pagination)
@@ -240,6 +229,26 @@ public class ApplicationController {
             System.out.println(error);
         }
         return totalresult.toString();
+    }
+
+    /**
+     * Checks the given text for complexity and returns a JSONObject with remarks and/or warnings.
+     *
+     * @param text text to be checked
+     */
+    @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
+    @RequestMapping("/text_check")
+    String text_check(@RequestParam(value = "text", defaultValue = "") String text) {
+        return TextEvaluator.getEvaluation(text, dt);
+    }
+
+    /**
+     * Returns a set of data for charts to be displayed in the application.
+     */
+    @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
+    @RequestMapping("/chart_data")
+    String chart_data() {
+        return "Hello there! You found a construction site. Congrats!";
     }
 
     /**
