@@ -1,23 +1,14 @@
 package uhh_lt.webserver;
 
 import org.json.JSONException;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-
-import org.jobimtext.api.struct.Order2;
 import org.jobimtext.api.struct.WebThesaurusDatastructure;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.regex.*;
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -25,10 +16,7 @@ import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocumentList;
-import org.apache.commons.lang.StringUtils;
-import opennlp.tools.sentdetect.*;
-import opennlp.tools.tokenize.*;
-import opennlp.tools.postag.*;
+import org.apache.solr.common.SolrDocument;
 
 import com.ibm.watson.developer_cloud.natural_language_understanding.v1.NaturalLanguageUnderstanding;
 import com.ibm.watson.developer_cloud.natural_language_understanding.v1.model.*;
@@ -44,34 +32,13 @@ public class ApplicationController {
     private static int amount_watson_concepts = 10;
     //TODO: REMOVE API KEY BEFORE COMMITTING
     private static String api_key = "";
-    // Variables for answer complexity check.
-    private static int min_text_length_to_match = 200;
-    private static int max_text_length_to_match = 500;
-    private static int avg_sentence_length_to_match = 15;
-    private static int avg_sentence_length_allowed_variance = 5;
-    private static int min_noun_usage_to_match = 40;
-    private static int min_avg_noun_usage_to_match = 1000;
-    private static double noun_to_verb_ratio_to_match = 2.5;
     // Holds the question received by the last '/fea' request to work on when changing filters with 'custom_fea'.
     private String current_question = "";
     // Holds the concepts of the question received by the last '/fea' request to work on when changing filters with 'custom_fea'.
     private String current_concepts_query_string = "";
 
-    @RequestMapping("/expansions")
-    String home(@RequestParam(value = "word", defaultValue = "") String word, @RequestParam(value = "format", defaultValue = "text") String format) {
-
-        word = word.replace("\r", " ").replace("\n", " ").trim();
-        format = format.replace("\r", " ").replace("\n", " ").trim();
-
-        if (format.compareTo("json") == 0) {
-            return generateJSONResponse(word);
-        } else {
-            return generateTextResponse(word);
-        }
-    }
-
     /**
-     * Checks the given text for complexity and returns a JSONObject with remarks and/or warnings.
+     * Accepts a question and returns similar questions and their answers found in Solr, as well as additional metadata.
      *
      * @param question question to search answers for
      * @param offset offset for Solr query (used for pagination)
@@ -139,19 +106,19 @@ public class ApplicationController {
         // Prepare keywords determined by Watson for Solr query.
         List<KeywordsResult> response_keywords = watson_response.getKeywords();
         String keywords_query_string = "";
-        ArrayList <String> keywords_array = new ArrayList<String>();
+        ArrayList <String> keywords_array = new ArrayList<>();
         if (response_keywords.size() != 0) {
             for (KeywordsResult result: response_keywords) {
                 keywords_query_string += ("*" + result.getText() + "* ");
                 keywords_array.add(result.getText());
-            };
+            }
         } else {
             keywords_query_string = "*";
         }
 
         // Prepare concepts determined by Watson for Solr query.
         List<ConceptsResult> response_concepts = watson_response.getConcepts();
-        ArrayList <String> concepts_array = new ArrayList<String>();
+        ArrayList <String> concepts_array = new ArrayList<>();
         if (response_concepts.size() !=0){
             for (ConceptsResult concepts_result: response_concepts) {
                 current_concepts_query_string += ("*" + concepts_result.getText()+ "* ");
@@ -171,15 +138,15 @@ public class ApplicationController {
         org.json.JSONArray result = new org.json.JSONArray();
         QueryResponse response = client.query(query);
         SolrDocumentList queryResults = response.getResults();
-        for (int i = 0; i < queryResults.size(); ++i) {
+        for (SolrDocument queryResult: queryResults) {
             org.json.JSONObject obj = new org.json.JSONObject();
             try {
-                obj.put("id", queryResults.get(i).get("id"));
-                obj.put("T_Date", queryResults.get(i).get("T_Date"));
-                obj.put("T_Subject", queryResults.get(i).get("T_Subject"));
-                obj.put("T_Message", queryResults.get(i).get("T_Message"));
-                obj.put("R_Message", queryResults.get(i).get("R_Message"));
-                obj.put("score", queryResults.get(i).get("score"));
+                obj.put("id", queryResult.get("id"));
+                obj.put("T_Date", queryResult.get("T_Date"));
+                obj.put("T_Subject", queryResult.get("T_Subject"));
+                obj.put("T_Message", queryResult.get("T_Message"));
+                obj.put("R_Message", queryResult.get("R_Message"));
+                obj.put("score", queryResult.get("score"));
             } catch (JSONException error) {
                 System.out.println(error);
             }
@@ -206,154 +173,11 @@ public class ApplicationController {
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/text_check")
     String text_check(@RequestParam(value = "text", defaultValue = "") String text) {
-        double words_count = 0;
-        double long_words_count = 0;
-        Pattern punctuation_mark_filter_pattern = Pattern.compile("[a-zA-ZßäÄöÖüÜ0-9]$");
-
-        Rating noun_to_verb_ratio_rating = Rating.NONE;
-        List<String> nouns = new ArrayList<String>();
-        String sentences[] = new String[0];
-
-        // Sentence detection.
-        try (InputStream sentence_model_in = new FileInputStream("de-sent.bin")) {
-            int nouns_count, verbs_count;
-            nouns_count = verbs_count = 0;
-            SentenceModel sentence_model = new SentenceModel(sentence_model_in);
-            SentenceDetectorME sentenceDetector = new SentenceDetectorME(sentence_model);
-            sentences = sentenceDetector.sentDetect(text);
-            // Tokenization per sentence.
-            try (InputStream token_model_in = new FileInputStream("de-token.bin")) {
-                TokenizerModel token_model = new TokenizerModel(token_model_in);
-                Tokenizer tokenizer = new TokenizerME(token_model);
-                for (String sentence: sentences) {
-                    String tokens[] = tokenizer.tokenize(sentence);
-                    // Count total amount of words for LIX calculation.
-                    String words[] = Arrays.stream(tokens).filter(token -> {
-                        Matcher regex_matcher = punctuation_mark_filter_pattern.matcher(token);
-                        return regex_matcher.find();
-                    }).toArray(String[]::new);
-                    words_count = words_count + words.length;
-                    long_words_count = long_words_count + Arrays.stream(words).filter(token ->
-                        token.length() > 6).toArray(String[]::new).length;
-                    // POS tagging all tokens
-                    try (InputStream pos_model_in = new FileInputStream("de-pos-maxent.bin")){
-                        POSModel model = new POSModel(pos_model_in);
-                        POSTaggerME tagger = new POSTaggerME(model);
-                        String tags[] = tagger.tag(tokens);
-                        // Count all nouns (tag starting with 'N') and verbs (tag starting with 'V').
-                        int i = 0;
-                        for (String tag: tags) {
-                            if (tag.charAt(0) == 'N') {
-                                nouns_count++;
-                                // Not great, but the way the tagger works way more readable than the alternative.
-                                nouns.add(tokens[i]);
-                            } else if (tag.charAt(0) == 'V') {
-                                verbs_count++;
-                            }
-                            i++;
-                        }
-                    }
-                }
-            }
-            // Determine noun_to_verb_ratio and evaluate it.
-            if (nouns_count != 0 && verbs_count != 0) {
-                double noun_to_verb_ratio = nouns_count / verbs_count;
-                if (noun_to_verb_ratio < noun_to_verb_ratio_to_match) {
-                    noun_to_verb_ratio_rating = Rating.GOOD;
-                } else {
-                    noun_to_verb_ratio_rating = Rating.BAD;
-                }
-            }
-        } catch(FileNotFoundException e) {
-            System.out.println("Uh-oh! File not found. Please make sure you have all necessary OpenNLP files for German sentence detection, tokenization and POS tagging (Maxent).");
-        } catch(IOException e) {
-            System.out.println("Uh-oh! An IO Exception occurred while attempting POS tagging.");
-        }
-
-        // Check usage of each noun and keep track of especially rarely used nouns for warnings.
-        List<Long> nouns_usages = new ArrayList<Long>();
-        List<String> problematic_nouns = new ArrayList<String>();
-        for (String noun: nouns) {
-            long noun_usage = dt.getTermCount(noun);
-            nouns_usages.add(noun_usage);
-            if (noun_usage < min_noun_usage_to_match) {
-                problematic_nouns.add(noun);
-            }
-        }
-
-        // Check if text is too short or too long.
-        Rating text_length_rating;
-        if (text.length() > min_text_length_to_match) {
-            if (text.length() < max_text_length_to_match) {
-                text_length_rating = Rating.OK;
-            } else {
-                text_length_rating = Rating.LONG;
-            }
-        } else {
-            text_length_rating = Rating.SHORT;
-        }
-
-        // Check if the average word count per sentence is too short or too long.
-        Rating avg_sentence_length_rating;
-        double avg_sentence_word_count = 0;
-        if (sentences.length != 0) {
-            avg_sentence_word_count = words_count / sentences.length;
-            if (avg_sentence_word_count < (avg_sentence_length_to_match - avg_sentence_length_allowed_variance)) {
-                avg_sentence_length_rating = Rating.SHORT;
-            } else {
-                if (avg_sentence_word_count > (avg_sentence_length_to_match + avg_sentence_length_allowed_variance)) {
-                    avg_sentence_length_rating = Rating.LONG;
-                } else {
-                    avg_sentence_length_rating = Rating.OK;
-                }
-            }
-        } else {
-            avg_sentence_length_rating = Rating.NONE;
-        }
-
-        // LIX calculation.
-        Rating lix_score = Rating.NONE;
-        double long_words_percentage = long_words_count / words_count * 100;
-        int lix = (int) Math.rint(long_words_percentage + avg_sentence_word_count);
-        if (lix <= 50) {
-            lix_score = Rating.GOOD;
-        } else if (lix <= 60) {
-            lix_score = Rating.OK;
-        } else if (lix > 60) {
-            lix_score = Rating.BAD;
-        }
-
-        // Check if the overall usage of nouns is too low.
-        Rating nouns_used_rating;
-        if (nouns_usages.size() != 0) {
-            Long avg_nouns_usage = 0l;
-            for (Long usage: nouns_usages) {
-                avg_nouns_usage = avg_nouns_usage + usage;
-            }
-            avg_nouns_usage = avg_nouns_usage / nouns_usages.size();
-
-            if (avg_nouns_usage < min_avg_noun_usage_to_match) {
-                nouns_used_rating = Rating.BAD;
-            } else {
-                nouns_used_rating = Rating.GOOD;
-            }
-        } else {
-            nouns_used_rating = Rating.NONE;
-        }
-
-        JSONObject response = new JSONObject();
-        response.put("text_length", text_length_rating.toString());
-        response.put("avg_sentence_length", avg_sentence_length_rating.toString());
-        response.put("nouns_used", nouns_used_rating.toString());
-        response.put("problematic_nouns", problematic_nouns);
-        response.put("nouns_to_verbs_ratio", noun_to_verb_ratio_rating.toString());
-        response.put("lix_score", lix_score.toString());
-
-        return response.toString();
+        return TextEvaluator.getEvaluation(text, dt);
     }
 
     /**
-     * Checks the given text for complexity and returns a JSONObject with remarks and/or warnings.
+     * Used for filtering the question query by given tags.
      *
      * @param offset offset for Solr query (used for pagination)
      * @param upper_limit upper limit for Solr query (used for pagination)
@@ -394,15 +218,15 @@ public class ApplicationController {
         org.json.JSONArray result = new org.json.JSONArray();
         QueryResponse response = client.query(query);
         SolrDocumentList queryResults = response.getResults();
-        for (int i = 0; i < queryResults.size(); ++i) {
+        for (SolrDocument queryResult: queryResults) {
             org.json.JSONObject obj = new org.json.JSONObject();
             try {
-                obj.put("id", queryResults.get(i).get("id"));
-                obj.put("T_Date", queryResults.get(i).get("T_Date"));
-                obj.put("T_Subject", queryResults.get(i).get("T_Subject"));
-                obj.put("T_Message", queryResults.get(i).get("T_Message"));
-                obj.put("R_Message", queryResults.get(i).get("R_Message"));
-                obj.put("score", queryResults.get(i).get("score"));
+                obj.put("id", queryResult.get("id"));
+                obj.put("T_Date", queryResult.get("T_Date"));
+                obj.put("T_Subject", queryResult.get("T_Subject"));
+                obj.put("T_Message", queryResult.get("T_Message"));
+                obj.put("R_Message", queryResult.get("R_Message"));
+                obj.put("score", queryResult.get("score"));
             } catch (JSONException error) {
                 System.out.println(error);
             }
@@ -416,27 +240,6 @@ public class ApplicationController {
             System.out.println(error);
         }
         return totalresult.toString();
-    }
-
-        private String generateJSONResponse(String input) {
-        JSONObject out = new JSONObject();
-        out.put("input", input);
-        JSONArray expansions = new JSONArray();
-        for (Order2 exp : dt.getSimilarTerms(input)) {
-            expansions.add(exp.key);
-        }
-        out.put("expansions", expansions);
-        return out.toString();
-    }
-
-    private String generateTextResponse(String input) {
-        StringBuilder output = new StringBuilder();
-        output.append("input: " + input);
-        output.append("\nexpansions:");
-        for (Order2 exp : dt.getSimilarTerms(input)) {
-            output.append("\n  - " + exp.key);
-        }
-        return output.toString();
     }
 
     /**
