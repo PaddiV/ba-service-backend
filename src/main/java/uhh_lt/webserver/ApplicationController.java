@@ -15,7 +15,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.regex.*;
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -204,22 +206,35 @@ public class ApplicationController {
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/text_check")
     String text_check(@RequestParam(value = "text", defaultValue = "") String text) {
+        double words_count = 0;
+        double long_words_count = 0;
+        Pattern punctuation_mark_filter_pattern = Pattern.compile("[a-zA-ZßäÄöÖüÜ0-9]$");
+
         Rating noun_to_verb_ratio_rating = Rating.NONE;
         List<String> nouns = new ArrayList<String>();
+        String sentences[] = new String[0];
 
-        // Sentence detection
+        // Sentence detection.
         try (InputStream sentence_model_in = new FileInputStream("de-sent.bin")) {
             int nouns_count, verbs_count;
             nouns_count = verbs_count = 0;
             SentenceModel sentence_model = new SentenceModel(sentence_model_in);
             SentenceDetectorME sentenceDetector = new SentenceDetectorME(sentence_model);
-            String sentences[] = sentenceDetector.sentDetect(text);
-            // Tokenization per sentence
+            sentences = sentenceDetector.sentDetect(text);
+            // Tokenization per sentence.
             try (InputStream token_model_in = new FileInputStream("de-token.bin")) {
                 TokenizerModel token_model = new TokenizerModel(token_model_in);
                 Tokenizer tokenizer = new TokenizerME(token_model);
                 for (String sentence: sentences) {
                     String tokens[] = tokenizer.tokenize(sentence);
+                    // Count total amount of words for LIX calculation.
+                    String words[] = Arrays.stream(tokens).filter(token -> {
+                        Matcher regex_matcher = punctuation_mark_filter_pattern.matcher(token);
+                        return regex_matcher.find();
+                    }).toArray(String[]::new);
+                    words_count = words_count + words.length;
+                    long_words_count = long_words_count + Arrays.stream(words).filter(token ->
+                        token.length() > 6).toArray(String[]::new).length;
                     // POS tagging all tokens
                     try (InputStream pos_model_in = new FileInputStream("de-pos-maxent.bin")){
                         POSModel model = new POSModel(pos_model_in);
@@ -279,15 +294,10 @@ public class ApplicationController {
         }
 
         // Check if the average word count per sentence is too short or too long.
-        String[] split_sentences = text.split("[\\.\\?\\!]");
         Rating avg_sentence_length_rating;
-        if (split_sentences.length != 0) {
-            double avg_sentence_word_count = 0;
-            for (String sentence : split_sentences) {
-                avg_sentence_word_count = avg_sentence_word_count + StringUtils.countMatches(sentence.trim(), " ") + 1;
-            }
-            avg_sentence_word_count = avg_sentence_word_count / split_sentences.length;
-
+        double avg_sentence_word_count = 0;
+        if (sentences.length != 0) {
+            avg_sentence_word_count = words_count / sentences.length;
             if (avg_sentence_word_count < (avg_sentence_length_to_match - avg_sentence_length_allowed_variance)) {
                 avg_sentence_length_rating = Rating.SHORT;
             } else {
@@ -299,6 +309,18 @@ public class ApplicationController {
             }
         } else {
             avg_sentence_length_rating = Rating.NONE;
+        }
+
+        // LIX calculation.
+        Rating lix_score = Rating.NONE;
+        double long_words_percentage = long_words_count / words_count * 100;
+        int lix = (int) Math.rint(long_words_percentage + avg_sentence_word_count);
+        if (lix <= 50) {
+            lix_score = Rating.GOOD;
+        } else if (lix <= 60) {
+            lix_score = Rating.OK;
+        } else if (lix > 60) {
+            lix_score = Rating.BAD;
         }
 
         // Check if the overall usage of nouns is too low.
@@ -325,6 +347,7 @@ public class ApplicationController {
         response.put("nouns_used", nouns_used_rating.toString());
         response.put("problematic_nouns", problematic_nouns);
         response.put("nouns_to_verbs_ratio", noun_to_verb_ratio_rating.toString());
+        response.put("lix_score", lix_score.toString());
 
         return response.toString();
     }
