@@ -52,20 +52,22 @@ public class TextEvaluator {
             try (InputStream token_model_in = new FileInputStream("de-token.bin")) {
                 TokenizerModel token_model = new TokenizerModel(token_model_in);
                 Tokenizer tokenizer = new TokenizerME(token_model);
-                for (String sentence: sentences) {
-                    String tokens[] = tokenizer.tokenize(sentence);
-                    // Count total amount of words for LIX calculation.
-                    String words[] = Arrays.stream(tokens).filter(token -> {
-                        Matcher regex_matcher = punctuation_mark_filter_pattern.matcher(token);
-                        return regex_matcher.find();
-                    }).toArray(String[]::new);
-                    words_count = words_count + words.length;
-                    long_words_count = long_words_count + Arrays.stream(words).filter(token ->
-                            token.length() > 6).toArray(String[]::new).length;
-                    // POS tagging all tokens
-                    try (InputStream pos_model_in = new FileInputStream("de-pos-maxent.bin")){
-                        POSModel model = new POSModel(pos_model_in);
-                        POSTaggerME tagger = new POSTaggerME(model);
+                // Load POS tagger
+                try (InputStream pos_model_in = new FileInputStream("de-pos-maxent.bin")){
+                    POSModel model = new POSModel(pos_model_in);
+                    POSTaggerME tagger = new POSTaggerME(model);
+                    for (String sentence: sentences) {
+                        String tokens[] = tokenizer.tokenize(sentence);
+                        // Count total amount of words for LIX calculation.
+                        String words[] = Arrays.stream(tokens).filter(token -> {
+                            Matcher regex_matcher = punctuation_mark_filter_pattern.matcher(token);
+                            return regex_matcher.find();
+                        }).toArray(String[]::new);
+                        words_count = words_count + words.length;
+                        long_words_count = long_words_count + Arrays.stream(words).filter(token ->
+                                token.length() > 6).toArray(String[]::new).length;
+                        // POS tagging all tokens
+
                         String tags[] = tagger.tag(tokens);
                         // Count all nouns (tag starting with 'N') and verbs (tag starting with 'V').
                         int i = 0;
