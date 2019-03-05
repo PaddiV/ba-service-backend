@@ -100,7 +100,7 @@ public class TextEvaluator {
         for (String noun: nouns) {
             long noun_usage = dt.getTermCount(noun);
             nouns_usages.add(noun_usage);
-            if (noun_usage < min_noun_usage_to_match) {
+            if ((noun_usage < min_noun_usage_to_match) && (!problematic_nouns.contains(noun))){
                 problematic_nouns.add(noun);
             }
         }
