@@ -32,12 +32,14 @@ public class TextEvaluator {
         double long_words_count = 0;
         // Matches when last char is not a letter or number.
         Pattern punctuation_mark_filter_pattern = Pattern.compile("[a-zA-ZßäÄöÖüÜ0-9]$");
-        // Matches when first char is not a letter or number, but the second char is.
-        Pattern punctuation_mark_at_first_pos_filter_pattern = Pattern.compile("^[^a-zA-ZßäÄöÖüÜ0-9]{1}[a-zA-ZßäÄöÖüÜ0-9]");
 
         Rating noun_to_verb_ratio_rating = Rating.NONE;
         List<String> nouns = new ArrayList<String>();
         String sentences[] = new String[0];
+
+        // Tokenizer does not recognize punctuation marks, if no space is between them and the next word.
+        // Therefore we place an additional space after each special character.
+        text = text.replaceAll("(?<=[]\\[+&|!(){}\\[\\]^\"~*?:/-[.][,]])", " ");
 
         // Sentence detection.
         try (InputStream sentence_model_in = new FileInputStream("de-sent.bin")) {
@@ -51,26 +53,9 @@ public class TextEvaluator {
                 TokenizerModel token_model = new TokenizerModel(token_model_in);
                 Tokenizer tokenizer = new TokenizerME(token_model);
                 for (String sentence: sentences) {
-                    String tokens_array[] = tokenizer.tokenize(sentence);
-                    // Create List for easy removal and addition of entries.
-                    List<String> tokens_list = new LinkedList<String>(Arrays.asList(tokens_array));
-                    int token_index, token_index_offset_correction;
-                    token_index = token_index_offset_correction = 0;
-                    for (String token: tokens_array) {
-                        // Check for tokens with punctuation marks at the beginning and separate those, as the OpenNLP tokenizer seems to have problems with that.
-                        Matcher regex_matcher = punctuation_mark_at_first_pos_filter_pattern.matcher(token);
-                        if (regex_matcher.find()) {
-                            tokens_list.remove(token_index - token_index_offset_correction);
-                            tokens_list.add(token.substring(0, 1));
-                            tokens_list.add(token.substring(1));
-                            token_index_offset_correction++;
-                        }
-                        token_index++;
-                    }
-                    // Convert the List back to an Array for further operations.
-                    tokens_array = tokens_list.toArray(new String[tokens_list.size()]);
+                    String tokens[] = tokenizer.tokenize(sentence);
                     // Count total amount of words for LIX calculation.
-                    String words[] = Arrays.stream(tokens_array).filter(token -> {
+                    String words[] = Arrays.stream(tokens).filter(token -> {
                         Matcher regex_matcher = punctuation_mark_filter_pattern.matcher(token);
                         return regex_matcher.find();
                     }).toArray(String[]::new);
@@ -81,14 +66,14 @@ public class TextEvaluator {
                     try (InputStream pos_model_in = new FileInputStream("de-pos-maxent.bin")){
                         POSModel model = new POSModel(pos_model_in);
                         POSTaggerME tagger = new POSTaggerME(model);
-                        String tags[] = tagger.tag(tokens_array);
+                        String tags[] = tagger.tag(tokens);
                         // Count all nouns (tag starting with 'N') and verbs (tag starting with 'V').
                         int i = 0;
                         for (String tag: tags) {
                             if (tag.charAt(0) == 'N') {
                                 nouns_count++;
                                 // Not great, but the way the tagger works way more readable than the alternative.
-                                nouns.add(tokens_array[i]);
+                                nouns.add(tokens[i]);
                             } else if (tag.charAt(0) == 'V') {
                                 verbs_count++;
                             }
