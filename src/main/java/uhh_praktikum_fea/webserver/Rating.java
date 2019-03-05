@@ -1,4 +1,4 @@
-package uhh_lt.webserver;
+package uhh_praktikum_fea.webserver;
 
 /**
  * Used for rating features of analyzed text.

@@ -1,4 +1,4 @@
-package uhh_lt.webserver;
+package uhh_praktikum_fea.webserver;
 
 import org.json.JSONException;
 import org.jobimtext.api.struct.WebThesaurusDatastructure;

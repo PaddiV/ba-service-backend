@@ -1,4 +1,4 @@
-package uhh_lt.webserver;
+package uhh_praktikum_fea.webserver;
 
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.request.QueryRequest;
@@ -29,7 +29,7 @@ import org.apache.solr.common.SolrDocumentList;
 
 
 
-public class Score_rechner {
+public class ScoreCalculator {
     public static void main(String[] args) throws IOException, SolrServerException, ParseException {
 
         JSONParser parser = new JSONParser();

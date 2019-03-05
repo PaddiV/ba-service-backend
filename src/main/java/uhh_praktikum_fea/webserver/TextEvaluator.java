@@ -1,4 +1,4 @@
-package uhh_lt.webserver;
+package uhh_praktikum_fea.webserver;
 
 import opennlp.tools.postag.POSModel;
 import opennlp.tools.postag.POSTaggerME;

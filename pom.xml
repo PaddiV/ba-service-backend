@@ -159,7 +159,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>uhh_lt.webserver.ApplicationController</mainClass>
+                            <mainClass>ApplicationController</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
