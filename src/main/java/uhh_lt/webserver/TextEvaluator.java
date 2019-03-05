@@ -14,9 +14,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -95,12 +93,12 @@ public class TextEvaluator {
         }
 
         // Check usage of each noun and keep track of especially rarely used nouns for warnings.
-        List<Long> nouns_usages = new ArrayList<Long>();
-        List<String> problematic_nouns = new ArrayList<String>();
+        List<Long> nouns_usages = new ArrayList<>();
+        Set<String> problematic_nouns = new HashSet<>();
         for (String noun: nouns) {
             long noun_usage = dt.getTermCount(noun);
             nouns_usages.add(noun_usage);
-            if ((noun_usage < min_noun_usage_to_match) && (!problematic_nouns.contains(noun))){
+            if (noun_usage < min_noun_usage_to_match){
                 problematic_nouns.add(noun);
             }
         }
