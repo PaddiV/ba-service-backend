@@ -94,11 +94,11 @@ public class TextEvaluator {
 
         // Check usage of each noun and keep track of especially rarely used nouns for warnings.
         List<Long> nouns_usages = new ArrayList<>();
-        Set<String> problematic_nouns = new HashSet<>();
+        List<String> problematic_nouns = new ArrayList<>();
         for (String noun: nouns) {
             long noun_usage = dt.getTermCount(noun);
             nouns_usages.add(noun_usage);
-            if (noun_usage < min_noun_usage_to_match){
+            if (noun_usage < min_noun_usage_to_match && !problematic_nouns.contains(noun)){
                 problematic_nouns.add(noun);
             }
         }
