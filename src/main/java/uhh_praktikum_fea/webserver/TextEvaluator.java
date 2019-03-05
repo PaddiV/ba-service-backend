@@ -67,7 +67,6 @@ public class TextEvaluator {
                         long_words_count = long_words_count + Arrays.stream(words).filter(token ->
                                 token.length() > 6).toArray(String[]::new).length;
                         // POS tagging all tokens
-
                         String tags[] = tagger.tag(tokens);
                         // Count all nouns (tag starting with 'N') and verbs (tag starting with 'V').
                         int i = 0;
@@ -102,12 +101,38 @@ public class TextEvaluator {
         // Check usage of each noun and keep track of especially rarely used nouns for warnings.
         List<Long> nouns_usages = new ArrayList<>();
         List<String> problematic_nouns = new ArrayList<>();
-        for (String noun: nouns) {
+        // Convert to set to get rid of duplicates in order to improve performance with fewer network requests.
+        Set<String> nouns_set = new HashSet<>(nouns);
+        Map<String, Long> noun_to_usage_mapping = new HashMap<>();
+        for (String noun: nouns_set) {
             long noun_usage = dt.getTermCount(noun);
-            nouns_usages.add(noun_usage);
-            if (noun_usage < min_noun_usage_to_match && !problematic_nouns.contains(noun)){
+            noun_to_usage_mapping.put(noun, noun_usage);
+            if (noun_usage < min_noun_usage_to_match){
                 problematic_nouns.add(noun);
             }
+        }
+        // Re-inflate from streamlined set for full text average noun usage calculated later.
+        for (String noun: nouns) {
+            long noun_usage = noun_to_usage_mapping.get(noun);
+            nouns_usages.add(noun_usage);
+        }
+
+        // Check if the overall usage of nouns is too low.
+        Rating nouns_used_rating;
+        if (nouns_usages.size() != 0) {
+            Long avg_nouns_usage = 0l;
+            for (Long usage: nouns_usages) {
+                avg_nouns_usage = avg_nouns_usage + usage;
+            }
+            avg_nouns_usage = avg_nouns_usage / nouns_usages.size();
+
+            if (avg_nouns_usage < min_avg_noun_usage_to_match) {
+                nouns_used_rating = Rating.BAD;
+            } else {
+                nouns_used_rating = Rating.GOOD;
+            }
+        } else {
+            nouns_used_rating = Rating.NONE;
         }
 
         // Check if text is too short or too long.
@@ -150,24 +175,6 @@ public class TextEvaluator {
             lix_score = Rating.OK;
         } else if (lix > 60) {
             lix_score = Rating.BAD;
-        }
-
-        // Check if the overall usage of nouns is too low.
-        Rating nouns_used_rating;
-        if (nouns_usages.size() != 0) {
-            Long avg_nouns_usage = 0l;
-            for (Long usage: nouns_usages) {
-                avg_nouns_usage = avg_nouns_usage + usage;
-            }
-            avg_nouns_usage = avg_nouns_usage / nouns_usages.size();
-
-            if (avg_nouns_usage < min_avg_noun_usage_to_match) {
-                nouns_used_rating = Rating.BAD;
-            } else {
-                nouns_used_rating = Rating.GOOD;
-            }
-        } else {
-            nouns_used_rating = Rating.NONE;
         }
 
         JSONObject response = new JSONObject();
