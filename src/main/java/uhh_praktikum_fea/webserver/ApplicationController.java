@@ -31,11 +31,13 @@ public class ApplicationController {
     private static int amount_watson_keywords = 10;
     private static int amount_watson_concepts = 10;
     //TODO: REMOVE API KEY BEFORE COMMITTING
-    private static String api_key = "";
+    private static String api_key = "hRBUii6eLTRZWjvq5yKVUXNv_Yk1-QPv-VB7ZEORbLEi";
     // Holds the question received by the last '/fea' request to work on when changing filters with 'custom_fea'.
     private String current_question = "";
     // Holds the concepts of the question received by the last '/fea' request to work on when changing filters with 'custom_fea'.
     private String current_concepts_query_string = "";
+    // Is the cutoff depending of the score
+    private float score_cutoff = 0;
 
     /**
      * Accepts a question and returns similar questions and their answers found in Solr, as well as additional metadata.
@@ -47,12 +49,19 @@ public class ApplicationController {
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/fea")
     String fea_home(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit) throws IOException, SolrServerException {
+        //sets the current_question
         question = question.replace(":", " ");
         current_question = question;
+        // erases the saved concepts
+        current_concepts_query_string = "";
+        // calculate the cutoff depending of the question-length
+        score_cutoff = (float)(current_question.length() * 0.05);
+
         int actual_offset;
         int actual_amount;
         int upper_boundary;
 
+        //catching false values
         try {
             actual_offset = Integer.parseInt(offset);
         } catch(NumberFormatException e) {
@@ -129,8 +138,26 @@ public class ApplicationController {
         }
 
         SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
+
+        // Creating a query to search the amount of answers with a score over the cutoff
+        SolrQuery query_score = new SolrQuery();
+        query_score.setQuery("T_Message:"+ current_question + " OR Keywords:(" + keywords_query_string + ")" + " OR Concepts:(" + current_concepts_query_string + ")");// + " OR Tags:(" + TAGS + ")");
+        query_score.set("fl", "id, score");
+        query_score.addSort("score", SolrQuery.ORDER.desc);
+        query_score.setStart(0);
+        query_score.setRows(1000);
+        QueryResponse score_response = client.query(query_score);
+        SolrDocumentList query_scoreResults = score_response.getResults();
+        int counter = 0;
+        for (SolrDocument query_scoreResult : query_scoreResults){
+            Object score = query_scoreResult.get("score");
+            if ((float) score < score_cutoff){ break;}
+            counter++;
+        }
+
+        // Creating the query
         SolrQuery query = new SolrQuery();
-        query.setQuery("T_Message:"+ current_question + " OR Keywords:(" + keywords_query_string + ")" + " OR Concepts:(" + current_concepts_query_string + ")");// + " OR Tags:( + TAGS + ")");
+        query.setQuery("T_Message:"+ current_question + " OR Keywords:(" + keywords_query_string + ")" + " OR Concepts:(" + current_concepts_query_string + ")");// + " OR Tags:(" + TAGS + ")");
         query.set("fl", "id, T_Date, T_Subject, T_Message, R_Message, score");
         query.addSort("score", SolrQuery.ORDER.desc);
         query.setStart(actual_offset);
@@ -138,8 +165,11 @@ public class ApplicationController {
         org.json.JSONArray result = new org.json.JSONArray();
         QueryResponse response = client.query(query);
         SolrDocumentList queryResults = response.getResults();
+
         for (SolrDocument queryResult: queryResults) {
+            //adding the results with score over the cutoff to the total-result
             org.json.JSONObject obj = new org.json.JSONObject();
+            if ((float)queryResult.get("score") < score_cutoff){break;}
             try {
                 obj.put("id", queryResult.get("id"));
                 obj.put("T_Date", queryResult.get("T_Date"));
@@ -152,9 +182,10 @@ public class ApplicationController {
             }
             result.put(obj);
         }
+        // adding count, keywords , concepts to the result
         org.json.JSONObject totalresult = new org.json.JSONObject();
         try {
-            totalresult.put("results_count", queryResults.getNumFound());
+            totalresult.put("results_count", counter);
             totalresult.put("data", result);
             totalresult.put("Keywords", keywords_array);
             totalresult.put("Concepts", concepts_array);
@@ -171,14 +202,17 @@ public class ApplicationController {
      * @param offset offset for Solr query (used for pagination)
      * @param upper_limit upper limit for Solr query (used for pagination)
      * @param keywords used for limiting Solr query (filtering)
+     * @param tags used for limiting Solr query (filtering)
      */
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/costum_fea")
     String fea_costum( @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit, @RequestParam(value = "keywords", defaultValue = "*") String keywords, @RequestParam(value = "tags", defaultValue = "*") String tags) throws IOException, SolrServerException {
+
         int actual_offset;
         int actual_amount;
         int upper_boundary;
 
+        //catching false values
         try {
             actual_offset = Integer.parseInt(offset);
         } catch(NumberFormatException e) {
@@ -197,9 +231,29 @@ public class ApplicationController {
         } else {
             actual_amount = (upper_boundary - actual_offset + 1);
         }
+
         SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
+        // Creating a query to search the amount of answers with a score over the cutoff
+        SolrQuery query_score = new SolrQuery();
+        query_score.setQuery("T_Message:"+ current_question + " OR Keywords:(" + keywords + ")" + " OR Concepts:(" + current_concepts_query_string + ")");// + " OR Tags:(" + TAGS + ")");
+        query_score.set("fl", "id, score");
+        query_score.addSort("score", SolrQuery.ORDER.desc);
+        query_score.setStart(0);
+        query_score.setRows(1000);
+        QueryResponse score_response = client.query(query_score);
+        SolrDocumentList query_scoreResults = score_response.getResults();
+        int counter = 0;
+        for (SolrDocument query_scoreResult : query_scoreResults) {
+            Object score = query_scoreResult.get("score");
+            if ((float) score < score_cutoff) {
+                break;
+            }
+            counter++;
+        }
+
+        // Creating the query
         SolrQuery query = new SolrQuery();
-        query.setQuery("T_Message:"+ current_question + " OR Keywords:(" + keywords + ")" + " OR Concepts:(" + current_concepts_query_string + ")");// + " OR Tags:( + TAGS + ")");
+        query.setQuery("T_Message:"+ current_question + " OR Keywords:(" + keywords + ")" + " OR Concepts:(" + current_concepts_query_string + ")");// + " OR Tags:(" + TAGS + ")");
         query.set("fl", "id, T_Date, T_Subject, T_Message, R_Message, score");
         query.addSort("score", SolrQuery.ORDER.desc);
         query.setStart(actual_offset);
@@ -208,7 +262,9 @@ public class ApplicationController {
         QueryResponse response = client.query(query);
         SolrDocumentList queryResults = response.getResults();
         for (SolrDocument queryResult: queryResults) {
+            //adding the results with score over the cutoff to the total-result
             org.json.JSONObject obj = new org.json.JSONObject();
+            if ((float)queryResult.get("score") < score_cutoff){break;}
             try {
                 obj.put("id", queryResult.get("id"));
                 obj.put("T_Date", queryResult.get("T_Date"));
@@ -222,8 +278,9 @@ public class ApplicationController {
             result.put(obj);
         }
         org.json.JSONObject totalresult = new org.json.JSONObject();
+        // adding count to the result
         try {
-            totalresult.put("results_count", queryResults.getNumFound());
+            totalresult.put("results_count", counter);
             totalresult.put("data", result);
         } catch (JSONException error) {
             System.out.println(error);

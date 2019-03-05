@@ -17,6 +17,8 @@ import org.json.simple.parser.JSONParser;
 public class Testclass {
     public static void main(String[] args) {
 
+        //creating a hash-map with the test-questions
+
     Map<String, Integer> fragen = new HashMap<String, Integer>();
 
     fragen.put("Ich habe gewerblich Räume gemietet und hatte zuvor Kontakt mit einem Makler. Dieser hat mir zwar andere Räume im gleichen Gebäude gezeigt und mich mit dem Vermieter in Kontakt gebracht, von den später gemieteten Räumen habe ich jedoch direkt vom Vermieter erfahren. Ich kannte den Vermieter bereits vorher aus dem Internet. Als der Makler nun Provision verlangt hat, habe ich nicht gezahlt und einem entsprechenden Mahnbescheid widersprochen. Meine Frage ist, ob ich dem Makler nach dieser Schilderung Provision zahlen muss." , 322593);
@@ -30,8 +32,13 @@ public class Testclass {
     fragen.put("Ich bin Mieter in einem Haus mit einem unbefristeten Mietvertrag. Das Haus soll nun verkauft werden und ich befürchte, dass mein Vermieter mich kündigen möchte. Kann er das und wenn ja, wie lange wäre die Kündigungsfrist in diesem Fall?",322367);
     fragen.put("Darf mein Vermieter mir untersagen ein Haustier zu halten?",322282);
 
+
+
     try {
             for (Map.Entry<String, Integer> entry : fragen.entrySet()) {
+
+                // searching for results in "T_Message" for every question
+
                 HttpClient client = new HttpClient(new URI("http://localhost:8080/fea?question=" + URLEncoder.encode( entry.getKey(), "UTF-8") + "&offset=0&upper_limit=999"));
                 HttpResponse response = client.sendData(HttpClient.HTTP_METHOD.GET);
                 String jsonString = response.getData();
@@ -42,8 +49,8 @@ public class Testclass {
                 JSONObject jsonObject = (JSONObject) obj;
                 JSONArray data = (JSONArray) jsonObject.get("data");
 
-
-                int zaehler = 1;
+                //count in witch place the id of the test-question equals the original question
+                int counter = 1;
                 for (Object o : data) {
 
                    JSONObject jsonObject1 = (JSONObject) o;
@@ -51,12 +58,12 @@ public class Testclass {
 
 
                     if (id == (long) entry.getValue()) {
-                        System.out.println(zaehler);
-                        System.out.println(id);
-                        //System.out.println(jsonObject1.get("score"));
 
+                        //print the place and the id of the question
+                        System.out.println(counter);
+                        System.out.println(id);
                     }
-                    zaehler++;
+                    counter++;
                 }
             }
 
