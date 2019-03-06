@@ -14,15 +14,12 @@ import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
-import uhh_praktikum_fea.webserver.Rating;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -39,24 +36,21 @@ public class MostCommonNounListGenerator {
         SolrDocumentList queryResults = response.getResults();
         String answers = "";
         for (SolrDocument queryResult : queryResults) {
-            answers += queryResult.get("R_Message").toString();
+            // Concatenate all answers without the surrounding brackets.
+            answers += queryResult.get("R_Message").toString().substring(1, queryResult.get("R_Message").toString().length() - 2);
         }
 
-
         List<String> nouns = new ArrayList<String>();
-        String sentences[] = new String[0];
-
+        List<String> nouns_tags = new ArrayList<String>();
+        String sentences[];
         // Tokenizer does not recognize punctuation marks, if no space is between them and the next word.
         // Therefore we place an additional space after each special character.
-        answers = answers.replaceAll("(?<=[]\\[+&|!(){}\\[\\]^\"~*?:/-[.][,]])", " ");
-
-        // Matches when last char is not a letter or number.
-        Pattern punctuation_mark_filter_pattern = Pattern.compile("[a-zA-ZßäÄöÖüÜ0-9]$");
+        answers = answers.replaceAll("(?<=[]\\[+&|!(){}\\[\\]^\"„~*?:/-[.][,]])", " ");
+        // Matches when first char is a capital letter.
+        Pattern non_noun_filter_pattern = Pattern.compile("^[A-ZÄÖÜ]");
 
         // Sentence detection.
         try (InputStream sentence_model_in = new FileInputStream("de-sent.bin")) {
-            double nouns_count, verbs_count;
-            nouns_count = verbs_count = 0;
             SentenceModel sentence_model = new SentenceModel(sentence_model_in);
             SentenceDetectorME sentenceDetector = new SentenceDetectorME(sentence_model);
             sentences = sentenceDetector.sentDetect(answers);
@@ -70,15 +64,23 @@ public class MostCommonNounListGenerator {
                     POSTaggerME tagger = new POSTaggerME(model);
                     for (String sentence : sentences) {
                         String tokens[] = tokenizer.tokenize(sentence);
+                        // Remove first word of sentence to get rid of false positives during noun detection.
+                        List<String> tokens_list = new ArrayList<String>();
+                        for (String token: tokens) {
+                            tokens_list.add(token);
+                        }
+                        tokens_list.remove(0);
+                        tokens = tokens_list.toArray(new String[tokens_list.size()]);
                         // POS tagging all tokens
                         String tags[] = tagger.tag(tokens);
-                        // Count all nouns (tag starting with 'N') and verbs (tag starting with 'V').
+                        // Store all nouns (tag starting with 'N' and capital first letter).
                         int i = 0;
                         for (String tag : tags) {
-                            if (tag.charAt(0) == 'N') {
-                                nouns_count++;
+                            Matcher regex_matcher = non_noun_filter_pattern.matcher(tokens[i]);
+                            if (tag.charAt(0) == 'N' && regex_matcher.find()) {
                                 // Not great, but the way the tagger works way more readable than the alternative.
                                 nouns.add(tokens[i]);
+                                nouns_tags.add(tag);
                                 i++;
                             }
                         }
@@ -89,13 +91,21 @@ public class MostCommonNounListGenerator {
             } catch (IOException e) {
                 System.out.println("Uh-oh! An IO Exception occurred while attempting POS tagging.");
             }
-            // Tokenize
-            // (Remove everything but words)
-            // Remove everything but nouns
-            // Set daraus generieren
-            // Daraus Map machen mit 0-Werten
-            // Gesamtliste iterieren und Werte der Map entsprechend hochzählen
-            // Häufigste x Worte
+
+            System.out.println(nouns);
+            System.out.println(nouns_tags);
+
+            Set<String> distinct_nouns = new HashSet<>(nouns);
+            Map<String, Long> noun_usages = new HashMap<>();
+            for (String noun: distinct_nouns) {
+                noun_usages.put(noun, 0l);
+            }
+            for (String noun: nouns) {
+                noun_usages.put(noun, noun_usages.get(noun) + 1);
+            }
+            System.out.println(noun_usages.keySet());
+            System.out.println(noun_usages.values());
+            System.out.println(noun_usages);
         }
     }
 
