@@ -93,13 +93,16 @@ public class ScoreCalculator {
         try {
             PrintWriter out = new PrintWriter("score.txt");
             out.println(Arrays.deepToString(score_lenght));
+
             PrintWriter aus = new PrintWriter("verhältnis_score.txt");
             aus.println(Arrays.deepToString(rechner));
             // Print current date and time.
             DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
             Date date = new Date();
+
             out.println(dateFormat.format(date));
             out.close();
+
             aus.println(dateFormat.format(date));
             aus.close();
         } catch (FileNotFoundException e) {

@@ -18,7 +18,8 @@ import java.util.List;
 
 public class SolrUploadTool {
     private static String solr_core_url = "http://ltdemos:8983/solr/fea-schema-less";
-    private static String data_json_path = "/informatik2/students/home/6grages/Praktikum/mietrechtexport1000-2.json/mietrechtexport1000-2_corrected.json";
+    private static String data_json_path = "/informatik2/students/home/7ferrara/Desktop/mietrechtexport1000-6319-3.json";
+
 
     public static void main(String[] args) throws FileNotFoundException,
             IOException, ParseException, SolrServerException {
@@ -33,16 +34,17 @@ public class SolrUploadTool {
             SolrInputDocument doc = new SolrInputDocument();
             JSONObject json = (JSONObject) data_object;
 
-            Long id = (Long) json.get("Topic_id");
+            Long id = (Long) json.get("topic_id");
             String t_date = (String) json.get("T_Date");
             String t_subject = (String) json.get("T_Subject");
             String t_message = (String) json.get("T_Message");
             String t_summary = (String) json.get("T_Summary");
             String r_posted = (String) json.get("R_posted");
             String r_message = (String) json.get("R_Message");
-            Long price = (Long) json.get("T_Price");
-            Long recommendation = (Long) json.get("Empfehlungen");
-            String tags = (String) json.get("Tags");
+            Long price = (Long) json.get("T_PRice");
+            Long recommendation = (Long) json.get("empfehlungen");
+            String tags = (String) json.get("tags");
+
 
             int t_length = t_message.replace(" ","").replace("\n","").replace("\r","").length();
             int r_length = r_message.replace(" ","").replace("\n","").replace("\r","").length();
@@ -116,14 +118,13 @@ public class SolrUploadTool {
             doc.setField("Entities", upload_entities);
             doc.setField("Categories", upload_categories);
             doc.setField("Concepts", upload_concepts);
-            doc.setField("Location", null);
             doc.setField("T_Length", t_length );
             doc.setField("R_Length", r_length);
-            doc.setField("R_Avg_Sentence_Length", null);
-            System.out.println(doc);
+
+            //System.out.println(doc);
             // Uncomment the following lines for actual uploading (deactivated for safety reasons).
-            //client.add(doc);
+            client.add(doc);
         }
-        //client.commit();
+        client.commit();
     }
 }
