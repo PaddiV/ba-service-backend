@@ -18,12 +18,13 @@ import java.util.List;
 
 public class SolrUploadTool {
     private static String solr_core_url = "http://ltdemos:8983/solr/fea-schema-less";
-    private static String data_json_path = "/informatik2/students/home/7ferrara/Desktop/mietrechtexport1000-6319-3.json";
+    private static String data_json_path = "";
 
 
     public static void main(String[] args) throws FileNotFoundException,
             IOException, ParseException, SolrServerException {
         SolrClient client = new HttpSolrClient.Builder(solr_core_url).build();
+
         JSONParser parser = new JSONParser();
 
         Object input_object = parser.parse(new FileReader(data_json_path));

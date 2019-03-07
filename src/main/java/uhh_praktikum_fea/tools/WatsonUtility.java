@@ -9,7 +9,7 @@ public class WatsonUtility {
     private static int amount_watson_keywords = 10;
     private static int amount_watson_concepts = 10;
     //TODO: REMOVE API KEY BEFORE COMMITTING
-    private static String api_key = "";
+    private static String api_key = "hRBUii6eLTRZWjvq5yKVUXNv_Yk1-QPv-VB7ZEORbLEi";
 
     public static AnalysisResults getWatsonRequestData(String text_to_analyze) {
         IamOptions options = new IamOptions.Builder()
