@@ -292,7 +292,7 @@ public class ApplicationController {
      */
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/text_check")
-    String text_check(@RequestParam(value = "text", defaultValue = "") String text) {
+    String text_check(@RequestParam(value = "text", defaultValue = "") String text) throws IOException, SolrServerException {
         return TextEvaluator.getEvaluation(text, dt, false);
     }
 

@@ -14,25 +14,28 @@ import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
+import org.apache.solr.common.SolrInputDocument;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class MostCommonNounListGenerator {
+public class MostCommonNounListTool {
+    // Determines the number of nouns to be stored. The x most common nouns will be stored.
+    private static int amount_nouns_to_store = 100;
+
     public static void main(String[] args) throws IOException, SolrServerException {
-        // Query
         SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
-        SolrQuery suche = new SolrQuery();
-        suche.setQuery("*");
-        suche.set("fl", "R_Message");
-        suche.setStart(0);
-        suche.setRows(999);
-        QueryResponse response = client.query(suche);
+        // Delete old common noun entries in Solr.
+        client.deleteByQuery("common_noun:*");
+
+        // Get answers from Solr.
+        SolrQuery query = new SolrQuery();
+        query.setQuery("R_Message:*");
+        query.set("fl", "R_Message");
+        query.setRows(5000);
+        QueryResponse response = client.query(query);
         SolrDocumentList queryResults = response.getResults();
         String answers = "";
         for (SolrDocument queryResult : queryResults) {
@@ -58,7 +61,7 @@ public class MostCommonNounListGenerator {
             try (InputStream token_model_in = new FileInputStream("de-token.bin")) {
                 TokenizerModel token_model = new TokenizerModel(token_model_in);
                 Tokenizer tokenizer = new TokenizerME(token_model);
-                // Load POS tagger
+                // Load POS tagger.
                 try (InputStream pos_model_in = new FileInputStream("de-pos-maxent.bin")) {
                     POSModel model = new POSModel(pos_model_in);
                     POSTaggerME tagger = new POSTaggerME(model);
@@ -92,9 +95,7 @@ public class MostCommonNounListGenerator {
                 System.out.println("Uh-oh! An IO Exception occurred while attempting POS tagging.");
             }
 
-            System.out.println(nouns);
-            System.out.println(nouns_tags);
-
+            // Count noun_usages.
             Set<String> distinct_nouns = new HashSet<>(nouns);
             Map<String, Long> noun_usages = new HashMap<>();
             for (String noun: distinct_nouns) {
@@ -103,13 +104,43 @@ public class MostCommonNounListGenerator {
             for (String noun: nouns) {
                 noun_usages.put(noun, noun_usages.get(noun) + 1);
             }
-            System.out.println(noun_usages.keySet());
-            System.out.println(noun_usages.values());
-            System.out.println(noun_usages);
+            // Sort to get most commonly used words first.
+            noun_usages = MapUtility.sortByValue(noun_usages);
+
+            // Upload to Solr.
+            SolrInputDocument doc = new SolrInputDocument();
+            int i = 0;
+            Iterator it = noun_usages.entrySet().iterator();
+            while (it.hasNext() && i < amount_nouns_to_store) {
+                Map.Entry pair = (Map.Entry)it.next();
+                doc.setField("id", "noun-" + i++);
+                doc.setField("common_noun", pair.getKey());
+                doc.setField("usage_amount", pair.getValue());
+                client.add(doc);
+                it.remove(); // avoids a ConcurrentModificationException
+            }
+            client.commit();
         }
     }
 
-    private static int getUsage(String word) {
-        return 0;
+    public static int getUsage(String word) throws IOException, SolrServerException {
+        SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
+        SolrQuery query = new SolrQuery();
+        query.setQuery("common_noun:" + word);
+        QueryResponse response = client.query(query);
+        SolrDocumentList queryResults = response.getResults();
+        if (queryResults.getNumFound() == 0) {
+            return 0;
+        }
+        String result_string = queryResults.get(0).get("usage_amount").toString().replaceAll("[\\[\\]]", "");
+        int result;
+        try {
+            result = Integer.parseInt(result_string);
+        }
+        catch (NumberFormatException e)
+        {
+            result = 0;
+        }
+        return result;
     }
 }

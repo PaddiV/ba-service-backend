@@ -7,8 +7,11 @@ import opennlp.tools.sentdetect.SentenceModel;
 import opennlp.tools.tokenize.Tokenizer;
 import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.tokenize.TokenizerModel;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.jobimtext.api.struct.WebThesaurusDatastructure;
 import org.json.simple.JSONObject;
+import uhh_praktikum_fea.tools.MostCommonNounListTool;
+
 import org.json.JSONException;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -27,7 +30,7 @@ public class TextEvaluator {
     private static int min_avg_noun_usage_to_match = 1000;
     private static double noun_to_verb_ratio_to_match = 2.5;
 
-    public static String getEvaluation(String text, WebThesaurusDatastructure dt, Boolean returnRawValues) {
+    public static String getEvaluation(String text, WebThesaurusDatastructure dt, Boolean returnRawValues) throws IOException, SolrServerException {
         double words_count = 0;
         double long_words_count = 0;
         double nouns_count, verbs_count;
@@ -53,24 +56,31 @@ public class TextEvaluator {
                 TokenizerModel token_model = new TokenizerModel(token_model_in);
                 Tokenizer tokenizer = new TokenizerME(token_model);
                 // Load POS tagger
-                try (InputStream pos_model_in = new FileInputStream("de-pos-maxent.bin")){
+                try (InputStream pos_model_in = new FileInputStream("de-pos-maxent.bin")) {
                     POSModel model = new POSModel(pos_model_in);
                     POSTaggerME tagger = new POSTaggerME(model);
-                    for (String sentence: sentences) {
+                    for (String sentence : sentences) {
                         String tokens[] = tokenizer.tokenize(sentence);
                         // Count total amount of words for LIX calculation.
                         String words[] = Arrays.stream(tokens).filter(token -> {
                             Matcher regex_matcher = punctuation_mark_filter_pattern.matcher(token);
                             return regex_matcher.find();
                         }).toArray(String[]::new);
+                        List<String> utf8_tokens = new ArrayList<String>();
+                        for (String token : tokens) {
+                            String utf8_token = new String(token.getBytes(), "UTF-8");
+                            utf8_tokens.add(utf8_token);
+                        }
+                        String[] utf8_tokens_arr = new String[utf8_tokens.size()];
+                        utf8_tokens_arr = utf8_tokens.toArray(utf8_tokens_arr);
                         words_count = words_count + words.length;
                         long_words_count = long_words_count + Arrays.stream(words).filter(token ->
                                 token.length() > 6).toArray(String[]::new).length;
                         // POS tagging all tokens
-                        String tags[] = tagger.tag(tokens);
+                        String tags[] = tagger.tag(utf8_tokens_arr);
                         // Count all nouns (tag starting with 'N') and verbs (tag starting with 'V').
                         int i = 0;
-                        for (String tag: tags) {
+                        for (String tag : tags) {
                             if (tag.charAt(0) == 'N') {
                                 nouns_count++;
                                 // Not great, but the way the tagger works way more readable than the alternative.
@@ -92,9 +102,9 @@ public class TextEvaluator {
                     noun_to_verb_ratio_rating = Rating.BAD;
                 }
             }
-        } catch(FileNotFoundException e) {
+        } catch (FileNotFoundException e) {
             System.out.println("Uh-oh! File not found. Please make sure you have all necessary OpenNLP files for German sentence detection, tokenization and POS tagging (Maxent).");
-        } catch(IOException e) {
+        } catch (IOException e) {
             System.out.println("Uh-oh! An IO Exception occurred while attempting POS tagging.");
         }
 
@@ -104,15 +114,21 @@ public class TextEvaluator {
         // Convert to set to get rid of duplicates in order to improve performance with fewer network requests.
         Set<String> nouns_set = new HashSet<>(nouns);
         Map<String, Long> noun_to_usage_mapping = new HashMap<>();
-        for (String noun: nouns_set) {
-            long noun_usage = dt.getTermCount(noun);
+        for (String noun : nouns_set) {
+            long noun_usage;
+            int local_common_nouns_usage = MostCommonNounListTool.getUsage(noun);
+            if (local_common_nouns_usage == 0) {
+                noun_usage = dt.getTermCount(noun);
+            } else {
+                noun_usage = local_common_nouns_usage;
+            }
             noun_to_usage_mapping.put(noun, noun_usage);
-            if (noun_usage < min_noun_usage_to_match){
+            if (noun_usage < min_noun_usage_to_match) {
                 problematic_nouns.add(noun);
             }
         }
         // Re-inflate from streamlined set for full text average noun usage calculated later.
-        for (String noun: nouns) {
+        for (String noun : nouns) {
             long noun_usage = noun_to_usage_mapping.get(noun);
             nouns_usages.add(noun_usage);
         }
@@ -121,7 +137,7 @@ public class TextEvaluator {
         Rating nouns_used_rating;
         if (nouns_usages.size() != 0) {
             Long avg_nouns_usage = 0l;
-            for (Long usage: nouns_usages) {
+            for (Long usage : nouns_usages) {
                 avg_nouns_usage = avg_nouns_usage + usage;
             }
             avg_nouns_usage = avg_nouns_usage / nouns_usages.size();
@@ -180,35 +196,29 @@ public class TextEvaluator {
         JSONObject response = new JSONObject();
         if (returnRawValues) {
             Long avg_nouns_usage = 0l;
-            for (Long usage: nouns_usages) {
+            for (Long usage : nouns_usages) {
                 avg_nouns_usage = avg_nouns_usage + usage;
             }
-
-        avg_nouns_usage = avg_nouns_usage / nouns_usages.size();
-        response.put("text_length", text.length());
-        response.put("avg_sentence_length", words_count / sentences.length);
-        response.put("nouns_used", avg_nouns_usage.toString());
-        response.put("problematic_nouns", problematic_nouns);
-        response.put("nouns_to_verbs_ratio", nouns_count / verbs_count);
-        response.put("lix_score", lix);
-        try{
-            totalresult.put("data", response);
-        } catch (JSONException error) {
-            System.out.println(error);}
-    }
-        else {
-        response.put("text_length", text_length_rating.toString());
-        response.put("avg_sentence_length", avg_sentence_length_rating.toString());
-        response.put("nouns_used", nouns_used_rating.toString());
-        response.put("problematic_nouns", problematic_nouns);
-        response.put("nouns_to_verbs_ratio", noun_to_verb_ratio_rating.toString());
-        response.put("lix_score", lix_score.toString());
-        try{
-            totalresult.put("data", response);
-        } catch (JSONException error) {
-            System.out.println(error);}
-    }
-
+            avg_nouns_usage = avg_nouns_usage / nouns_usages.size();
+            response.put("text_length", text.length());
+            response.put("avg_sentence_length", words_count / sentences.length);
+            response.put("nouns_used", avg_nouns_usage.toString());
+            response.put("problematic_nouns", problematic_nouns);
+            response.put("nouns_to_verbs_ratio", nouns_count / verbs_count);
+            response.put("lix_score", lix);
+            try {
+                totalresult.put("data", response);
+            } catch (JSONException error) {
+                System.out.println(error);
+            }
+        } else {
+            response.put("text_length", text_length_rating.toString());
+            response.put("avg_sentence_length", avg_sentence_length_rating.toString());
+            response.put("nouns_used", nouns_used_rating.toString());
+            response.put("problematic_nouns", problematic_nouns);
+            response.put("nouns_to_verbs_ratio", noun_to_verb_ratio_rating.toString());
+            response.put("lix_score", lix_score.toString());
+        }
         return response.toString();
     }
 }
