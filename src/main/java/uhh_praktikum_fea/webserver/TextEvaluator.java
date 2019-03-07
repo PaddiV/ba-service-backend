@@ -8,9 +8,8 @@ import opennlp.tools.tokenize.Tokenizer;
 import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.tokenize.TokenizerModel;
 import org.jobimtext.api.struct.WebThesaurusDatastructure;
-import org.json.JSONException;
 import org.json.simple.JSONObject;
-
+import org.json.JSONException;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -184,30 +183,31 @@ public class TextEvaluator {
             for (Long usage: nouns_usages) {
                 avg_nouns_usage = avg_nouns_usage + usage;
             }
-            avg_nouns_usage = avg_nouns_usage / nouns_usages.size();
-            response.put("text_length", text.length());
-            response.put("avg_sentence_length", words_count / sentences.length);
-            response.put("nouns_used", avg_nouns_usage.toString());
-            response.put("problematic_nouns", problematic_nouns);
-            response.put("nouns_to_verbs_ratio", nouns_count / verbs_count);
-            response.put("lix_score", lix);
-            try{
+
+        avg_nouns_usage = avg_nouns_usage / nouns_usages.size();
+        response.put("text_length", text.length());
+        response.put("avg_sentence_length", words_count / sentences.length);
+        response.put("nouns_used", avg_nouns_usage.toString());
+        response.put("problematic_nouns", problematic_nouns);
+        response.put("nouns_to_verbs_ratio", nouns_count / verbs_count);
+        response.put("lix_score", lix);
+        try{
             totalresult.put("data", response);
-            } catch (JSONException error) {
-                System.out.println(error);}
-        }
+        } catch (JSONException error) {
+            System.out.println(error);}
+    }
         else {
-            response.put("text_length", text_length_rating.toString());
-            response.put("avg_sentence_length", avg_sentence_length_rating.toString());
-            response.put("nouns_used", nouns_used_rating.toString());
-            response.put("problematic_nouns", problematic_nouns);
-            response.put("nouns_to_verbs_ratio", noun_to_verb_ratio_rating.toString());
-            response.put("lix_score", lix_score.toString());
-            try{
+        response.put("text_length", text_length_rating.toString());
+        response.put("avg_sentence_length", avg_sentence_length_rating.toString());
+        response.put("nouns_used", nouns_used_rating.toString());
+        response.put("problematic_nouns", problematic_nouns);
+        response.put("nouns_to_verbs_ratio", noun_to_verb_ratio_rating.toString());
+        response.put("lix_score", lix_score.toString());
+        try{
             totalresult.put("data", response);
-            } catch (JSONException error) {
-                System.out.println(error);}
-        }
+        } catch (JSONException error) {
+            System.out.println(error);}
+    }
 
         return response.toString();
     }

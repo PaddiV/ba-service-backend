@@ -31,9 +31,7 @@ public class ApplicationController {
     private static int amount_watson_keywords = 10;
     private static int amount_watson_concepts = 10;
     //TODO: REMOVE API KEY BEFORE COMMITTING
-    private static String api_key = "hRBUii6eLTRZWjvq5yKVUXNv_Yk1-QPv-VB7ZEORbLEi";
-    // Holds the question received by the last '/fea' request to work on when changing filters with 'custom_fea'.
-    private String current_question = "";
+    private static String api_key = "";
     // Holds the concepts of the question received by the last '/fea' request to work on when changing filters with 'custom_fea'.
     private String current_concepts_query_string = "";
     // Is the cutoff depending of the score
@@ -54,7 +52,7 @@ public class ApplicationController {
         // erases the saved concepts
         current_concepts_query_string = "";
         // calculate the cutoff depending of the question-length
-        score_cutoff = (float)(current_question.length() * 0.05);
+        score_cutoff = (float)(question.length() * 0.05);
 
         int actual_offset;
         int actual_amount;
