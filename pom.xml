@@ -38,6 +38,12 @@
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
             <optional>true</optional>
         </dependency>
@@ -80,12 +86,6 @@
                 <groupId>servlet-api</groupId>
             </exclusion>
         </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>com.ibm.watson.developer_cloud</groupId>
-            <artifactId>java-sdk</artifactId>
-            <version>3.5.3</version>
         </dependency>
 
         <dependency>
@@ -145,6 +145,22 @@
         </dependency>
 
 
+        <dependency>
+            <groupId>javax.xml.bind</groupId>
+            <artifactId>jaxb-api</artifactId>
+            <version>2.2.11</version>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.xml.bind</groupId>
+            <artifactId>jaxb-impl</artifactId>
+            <version>2.2.11</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.activation</groupId>
+            <artifactId>activation</artifactId>
+            <version>1.1.1</version>
+        </dependency>
+
     </dependencies>
         <packaging>war</packaging>
         <build>
@@ -153,7 +169,7 @@
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <configuration>
-                        <mainClass>uhh_lt.webserver.ApplicationController</mainClass>
+                        <mainClass>uhh_praktikum_fea.webserver.ApplicationController</mainClass>
                     </configuration>
                 </plugin>
 
@@ -164,14 +180,12 @@
                         <archive>
                             <manifest>
                                 <addClasspath>true</addClasspath>
-                                <mainClass>uhh_lt.webserver.ApplicationController</mainClass>
+                                <mainClass>uhh_praktikum_fea.webserver.ApplicationController</mainClass>
                             </manifest>
                         </archive>
                     </configuration>
                 </plugin>
             </plugins>
         </build>
-
-
 
 </project>
