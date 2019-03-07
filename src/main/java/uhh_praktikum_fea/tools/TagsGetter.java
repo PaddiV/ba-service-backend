@@ -52,9 +52,7 @@ public class TagsGetter {
             }
         }
         // Sort by number of occurrences.
-        ValueComparator bvc = new ValueComparator(unique_tags);
-        TreeMap<String, Integer> sorted_unique_tags = new TreeMap<String, Integer>(bvc);
-        sorted_unique_tags.putAll(unique_tags);
+        Map<String, Integer> sorted_unique_tags = MapUtility.sortByValue(unique_tags);
         // Print result to file.
         try {
             PrintWriter out = new PrintWriter("sorted-unique-tags.txt");
@@ -67,22 +65,5 @@ public class TagsGetter {
         } catch(FileNotFoundException e) {
             throw e;
         }
-    }
-}
-
-class ValueComparator implements Comparator<String> {
-    Map<String, Integer> base;
-
-    public ValueComparator(Map<String, Integer> base) {
-        this.base = base;
-    }
-
-    // Note: this comparator imposes orderings that are inconsistent with equals.
-    public int compare(String a, String b) {
-        if (base.get(a) >= base.get(b)) {
-            return -1;
-        } else {
-            return 1;
-        } // returning 0 would merge keys
     }
 }
