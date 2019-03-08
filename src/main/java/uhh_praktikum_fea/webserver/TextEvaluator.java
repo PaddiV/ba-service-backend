@@ -22,13 +22,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TextEvaluator {
-    private static int min_text_length_to_match = 200;
-    private static int max_text_length_to_match = 500;
-    private static int avg_sentence_length_to_match = 15;
+    private static int min_text_length_to_match = 1000;
+    private static int max_text_length_to_match = 2500;
+    private static int avg_sentence_length_to_match = 17;
     private static int avg_sentence_length_allowed_variance = 5;
-    private static int min_noun_usage_to_match = 40;
-    private static int min_avg_noun_usage_to_match = 1000;
-    private static double noun_to_verb_ratio_to_match = 2.5;
+    private static int min_noun_usage_to_match = 50;
+    private static int min_avg_noun_usage_to_match = 30000;
+    private static double noun_to_verb_ratio_to_match = 1.5;
+    private static double noun_to_verb_ratio_to_match_variance = 0.4;
 
     public static String getEvaluation(String text, DTHelper dt, Boolean returnRawValues) throws IOException, SolrServerException {
         double words_count = 0;
@@ -99,10 +100,12 @@ public class TextEvaluator {
             // Determine noun_to_verb_ratio and evaluate it.
             if (nouns_count != 0 && verbs_count != 0) {
                 double noun_to_verb_ratio = nouns_count / verbs_count;
-                if (noun_to_verb_ratio < noun_to_verb_ratio_to_match) {
-                    noun_to_verb_ratio_rating = Rating.GOOD;
-                } else {
+                if (noun_to_verb_ratio < noun_to_verb_ratio_to_match - noun_to_verb_ratio_to_match_variance) {
                     noun_to_verb_ratio_rating = Rating.BAD;
+                } else if (noun_to_verb_ratio > noun_to_verb_ratio_to_match + noun_to_verb_ratio_to_match_variance) {
+                    noun_to_verb_ratio_rating = Rating.BAD;
+                } else {
+                    noun_to_verb_ratio_rating = Rating.GOOD;
                 }
             }
         } catch (FileNotFoundException e) {
