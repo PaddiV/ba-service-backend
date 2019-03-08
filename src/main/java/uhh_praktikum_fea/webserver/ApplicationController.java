@@ -32,7 +32,7 @@ public class ApplicationController extends SpringBootServletInitializer {
     //TODO: REMOVE CREDENTIALS BEFORE COMMITTING
     private static String user = "asdf";
     private static String password = "asdf";
-    private static WebThesaurusDatastructure dt;
+    private static DTHelper dt;
     // Determines how many keywords Watson should return for given question.
     private static int amount_watson_keywords = 10;
     private static int amount_watson_concepts = 10;
@@ -342,9 +342,8 @@ public class ApplicationController extends SpringBootServletInitializer {
      *
      * @param args execution arguments
      */
-    public static void main(String[] args) {
-        dt = new WebThesaurusDatastructure("src/main/resources/conf_web_deNews_trigram.xml");
-        dt.connect();
+    public static void main(String[] args) throws java.io.IOException {
+        dt = new DTHelper("conf_web_deNews_trigram.xml");
         SpringApplication.run(ApplicationController.class, args);
     }
 

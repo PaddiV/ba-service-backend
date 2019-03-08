@@ -30,7 +30,7 @@ public class TextEvaluator {
     private static int min_avg_noun_usage_to_match = 1000;
     private static double noun_to_verb_ratio_to_match = 2.5;
 
-    public static String getEvaluation(String text, WebThesaurusDatastructure dt, Boolean returnRawValues) throws IOException, SolrServerException {
+    public static String getEvaluation(String text, DTHelper dt, Boolean returnRawValues) throws IOException, SolrServerException {
         double words_count = 0;
         double long_words_count = 0;
         double nouns_count, verbs_count;

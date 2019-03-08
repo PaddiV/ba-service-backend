@@ -22,21 +22,21 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 
+import uhh_praktikum_fea.webserver.DTHelper;
 import uhh_praktikum_fea.webserver.TextEvaluator;
 
 
 
 public class RMessageStats {
 
-    private static WebThesaurusDatastructure dt;
+    private static DTHelper dt;
 
     public static void main(String[] args) throws IOException, SolrServerException, ParseException {
 
         int start = 0;
         int rows = 3;
 
-        dt = new WebThesaurusDatastructure("src/main/resources/conf_web_deNews_trigram.xml");
-        dt.connect();
+        dt = new DTHelper("conf_web_deNews_trigram.xml");
 
         PrintWriter stats = new PrintWriter("R_Message.json");
         // Query
