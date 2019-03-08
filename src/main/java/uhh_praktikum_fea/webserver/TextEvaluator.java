@@ -45,6 +45,8 @@ public class TextEvaluator {
         // Tokenizer does not recognize punctuation marks, if no space is between them and the next word.
         // Therefore we place an additional space after each special character.
         text = text.replaceAll("(?<=[]\\[+&|!(){}\\[\\]^\"~*?:/-[.][,]])", " ");
+        // Remove quotation marks, which seem to break the method somehow.
+        text = text.replaceAll("\"", "");
 
         // Sentence detection.
         try (InputStream sentence_model_in = new FileInputStream("de-sent.bin")) {
