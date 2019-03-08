@@ -26,6 +26,9 @@ import com.ibm.watson.developer_cloud.service.security.IamOptions;
 @EnableAutoConfiguration
 public class ApplicationController {
 
+    //TODO: REMOVE CREDENTIALS BEFORE COMMITTING
+    private static String user = "";
+    private static String password = "";
     private static WebThesaurusDatastructure dt;
     // Determines how many keywords Watson should return for given question.
     private static int amount_watson_keywords = 10;
@@ -46,7 +49,10 @@ public class ApplicationController {
      */
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/fea")
-    String fea_home(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit) throws IOException, SolrServerException {
+    String fea_home(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit, @RequestParam(value = "logged_in_user", defaultValue = "") String logged_in_user, @RequestParam(value = "logged_in_password", defaultValue = "") String logged_in_password) throws IOException, SolrServerException {
+        if (logged_in_user != user || logged_in_password != password) {
+            return "Incorrect login!";
+        }
         //sets the current_question
         question = question.replace(":", " ");
         // erases the saved concepts
@@ -203,8 +209,10 @@ public class ApplicationController {
      */
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/custom_fea")
-    String fea_custom(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit, @RequestParam(value = "keywords", defaultValue = "*") String keywords, @RequestParam(value = "tags", defaultValue = "*") String tags) throws IOException, SolrServerException {
-
+    String fea_custom(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit, @RequestParam(value = "keywords", defaultValue = "*") String keywords, @RequestParam(value = "tags", defaultValue = "*") String tags, @RequestParam(value = "logged_in_user", defaultValue = "") String logged_in_user, @RequestParam(value = "logged_in_password", defaultValue = "") String logged_in_password) throws IOException, SolrServerException {
+        if (logged_in_user != user || logged_in_password != password) {
+            return "Incorrect login!";
+        }
         int actual_offset;
         int actual_amount;
         int upper_boundary;
@@ -292,7 +300,10 @@ public class ApplicationController {
      */
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/text_check")
-    String text_check(@RequestParam(value = "text", defaultValue = "") String text) throws IOException, SolrServerException {
+    String text_check(@RequestParam(value = "text", defaultValue = "") String text, @RequestParam(value = "logged_in_user", defaultValue = "") String logged_in_user, @RequestParam(value = "logged_in_password", defaultValue = "") String logged_in_password) throws IOException, SolrServerException {
+        if (logged_in_user != user || logged_in_password != password) {
+            return "Incorrect login!";
+        }
         return TextEvaluator.getEvaluation(text, dt, false);
     }
 
@@ -301,8 +312,23 @@ public class ApplicationController {
      */
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/chart_data")
-    String chart_data() {
+    String chart_data(@RequestParam(value = "logged_in_user", defaultValue = "") String logged_in_user, @RequestParam(value = "logged_in_password", defaultValue = "") String logged_in_password) {
+        if (logged_in_user != user || logged_in_password != password) {
+            return "Incorrect login!";
+        }
         return "Hello there! You found a construction site. Congrats!";
+    }
+
+    /**
+     * Returns true when user and passphrase are correct, false otherwise.
+     */
+    @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
+    @RequestMapping("/login")
+    Boolean login(@RequestParam(value = "login_user", defaultValue = "") String login_user, @RequestParam(value = "login_password", defaultValue = "") String login_password) {
+        if (login_user == user && login_password == password) {
+            return true;
+        }
+        return false;
     }
 
     /**
