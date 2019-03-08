@@ -34,30 +34,29 @@ public class Stats {
         while ((s = buffer.readLine()) != null) {
             JSONObject object = (JSONObject) parser.parse(s);
 
-            double x_double = Double.parseDouble((String) object.get(x_achse));
-            x += x_double;
-            x_list[counter] = x_double;
-
-            double y_double = Double.parseDouble((String) object.get(y_achse));
-            y += y_double;
-            y_list[counter] = (y_double);
-
+            x_list[counter] = toDouble(object, x_achse);
+            y_list[counter] = toDouble(object, y_achse);
             counter++;
         }
 
-        double[][] score_lenght = new double[999][2];
+        double[][] chart_array = new double[999][2];
 
         for (int i = 0; i < counter; ++i) {
-            score_lenght[i][0] = x_list[i];
-            score_lenght[i][1] = y_list[i];
+            chart_array[i][0] = x_list[i];
+            chart_array[i][1] = y_list[i];
 
         }
-        return Arrays.deepToString(score_lenght);
+        return Arrays.deepToString(chart_array);
 
             //System.out.println("nouns_to_verbs_ratio: "+ (ntvr/counter));
             //System.out.println("nouns_used: "+ (nu/counter) );
             //System.out.println("lix_score: "+ (lix/counter) );
             //System.out.println("text_length: "+ (tl/counter));
             //System.out.println("avg_sentence_length: "+ (avg/counter));
+    }
+    private double toDouble ( JSONObject object, String axis){
+        String str = object.get(axis).toString();
+        Double d = new Double(str);
+        return d.doubleValue();
     }
 }
