@@ -43,7 +43,7 @@ public class RMessageStats {
         int start = 0;
         int rows = 3;
 
-        dt = new WebThesaurusDatastructure("resources/conf_web_deNews_trigram.xml");
+        dt = new WebThesaurusDatastructure("src/main/resources/conf_web_deNews_trigram.xml");
         dt.connect();
 
         PrintWriter stats = new PrintWriter("R_Message.json");

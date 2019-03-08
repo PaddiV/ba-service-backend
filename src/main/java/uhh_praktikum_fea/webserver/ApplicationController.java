@@ -4,6 +4,8 @@ import org.json.JSONException;
 import org.jobimtext.api.struct.WebThesaurusDatastructure;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.web.SpringBootServletInitializer;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -23,8 +25,9 @@ import com.ibm.watson.developer_cloud.natural_language_understanding.v1.model.*;
 import com.ibm.watson.developer_cloud.service.security.IamOptions;
 
 @RestController
+@SpringBootApplication
 @EnableAutoConfiguration
-public class ApplicationController {
+public class ApplicationController extends SpringBootServletInitializer {
 
     //TODO: REMOVE CREDENTIALS BEFORE COMMITTING
     private static String user = "";
