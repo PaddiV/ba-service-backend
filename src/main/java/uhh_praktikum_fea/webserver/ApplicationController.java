@@ -1,7 +1,9 @@
 package uhh_praktikum_fea.webserver;
 
+
 import org.json.JSONException;
 import org.jobimtext.api.struct.WebThesaurusDatastructure;
+import org.json.simple.parser.ParseException;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -9,6 +11,7 @@ import org.springframework.boot.context.web.SpringBootServletInitializer;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,6 +26,8 @@ import org.apache.solr.common.SolrDocument;
 import com.ibm.watson.developer_cloud.natural_language_understanding.v1.NaturalLanguageUnderstanding;
 import com.ibm.watson.developer_cloud.natural_language_understanding.v1.model.*;
 import com.ibm.watson.developer_cloud.service.security.IamOptions;
+import uhh_praktikum_fea.tools.Stats;
+import uhh_praktikum_fea.tools.Store;
 
 @RestController
 @SpringBootApplication
@@ -30,9 +35,9 @@ import com.ibm.watson.developer_cloud.service.security.IamOptions;
 public class ApplicationController extends SpringBootServletInitializer {
 
     //TODO: REMOVE CREDENTIALS BEFORE COMMITTING
-    private static String user = "asdf";
-    private static String password = "asdf";
     private static DTHelper dt;
+    private static String stored_user = "asdf";
+    private static String stored_password = "asdf";
     // Determines how many keywords Watson should return for given question.
     private static int amount_watson_keywords = 10;
     private static int amount_watson_concepts = 10;
@@ -53,8 +58,8 @@ public class ApplicationController extends SpringBootServletInitializer {
 
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/fea")
-    String fea_home(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit, @RequestParam(value = "user", defaultValue = "") String logged_in_user, @RequestParam(value = "password", defaultValue = "") String password) throws IOException, SolrServerException {
-        if (logged_in_user != user || password != password) {
+    String fea_home(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit, @RequestParam(value = "user", defaultValue = "") String user, @RequestParam(value = "password", defaultValue = "") String password) throws IOException, SolrServerException {
+        if (!(user.equals( stored_user ) && password.equals( stored_password))) {
             return "Incorrect login!";
         }
         //sets the current_question
@@ -214,7 +219,7 @@ public class ApplicationController extends SpringBootServletInitializer {
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/custom_fea")
     String fea_custom(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit, @RequestParam(value = "keywords", defaultValue = "*") String keywords, @RequestParam(value = "tags", defaultValue = "*") String tags, @RequestParam(value = "user", defaultValue = "") String user, @RequestParam(value = "password", defaultValue = "") String password) throws IOException, SolrServerException {
-        if (user != ApplicationController.user || password != ApplicationController.password) {
+        if  (!(user.equals( stored_user ) && password.equals( stored_password))) {
             return "Incorrect login!";
         }
         int actual_offset;
@@ -306,7 +311,7 @@ public class ApplicationController extends SpringBootServletInitializer {
     @RequestMapping("/text_check")
     String text_check(@RequestParam(value = "text", defaultValue = "") String text, @RequestParam(value = "user", defaultValue = "") String user, @RequestParam(value = "password", defaultValue = "") String password) throws IOException, SolrServerException {
         TextEvaluator evaluator = new TextEvaluator();
-        if (user != user || password != password) {
+        if  (!(user.equals( stored_user ) && password.equals( stored_password))) {
             return "Incorrect login!";
         }
         return evaluator.getEvaluation(text, dt, false);
@@ -316,12 +321,14 @@ public class ApplicationController extends SpringBootServletInitializer {
      * Returns a set of data for charts to be displayed in the application.
      */
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
-    @RequestMapping("/chart_data")
-    String chart_data(@RequestParam(value = "user", defaultValue = "") String user, @RequestParam(value = "password", defaultValue = "") String password) {
-        if (user != ApplicationController.user || password != ApplicationController.password) {
+    @RequestMapping("/chart")
+    String chart_data(@RequestParam(value = "X", defaultValue = "") String x_achse ,@RequestParam(value = "Y", defaultValue = "") String y_achse,@RequestParam(value = "user", defaultValue = "") String user, @RequestParam(value = "password", defaultValue = "") String password) throws IOException, ParseException{
+        Stats stats = new Stats();
+        if  (!(user.equals( stored_user ) && password.equals( stored_password))) {
             return "Incorrect login!";
         }
-        return "Hello there! You found a construction site. Congrats!";
+        return stats.charts(x_achse, y_achse);
+
     }
 
     /**
@@ -330,13 +337,30 @@ public class ApplicationController extends SpringBootServletInitializer {
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/login")
     Boolean login(@RequestParam(value = "user", defaultValue = "") String user, @RequestParam(value = "password", defaultValue = "") String password) {
-        System.out.println(user);
-        System.out.println(password);
-        if (user.equals(ApplicationController.user) && password.equals(ApplicationController.password)) {
+        if (user.equals(stored_user) && password.equals(stored_password)) {
             return true;
         }
         return false;
     }
+
+    /**
+     *Stores the answer in Solr
+     */
+    @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
+    @RequestMapping("/store")
+    Boolean store(@RequestParam(value = "question", defaultValue = "No Data") String question, @RequestParam(value = "answer", defaultValue = "No Data") String answer, @RequestParam(value = "keywords", defaultValue = "*") String keywords, @RequestParam(value = "user", defaultValue = "") String user, @RequestParam(value = "password", defaultValue = "") String password) throws IOException, SolrServerException {
+
+        if (!(user.equals(stored_user) && password.equals(stored_password))) {
+            return false;
+        }
+                 Store.storing(question, answer);
+
+        return true;
+    }
+
+
+
+
 
     /**
      * Runs the RESTful server.
