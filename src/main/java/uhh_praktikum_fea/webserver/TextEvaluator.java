@@ -56,6 +56,7 @@ public class TextEvaluator {
                 TokenizerModel token_model = new TokenizerModel(token_model_in);
                 Tokenizer tokenizer = new TokenizerME(token_model);
                 // Load POS tagger
+                //getClass().getClassLoader().getResourceAsStream("de-pos-maxent.bin");
                 try (InputStream pos_model_in = new FileInputStream("de-pos-maxent.bin")) {
                     POSModel model = new POSModel(pos_model_in);
                     POSTaggerME tagger = new POSTaggerME(model);
@@ -208,6 +209,7 @@ public class TextEvaluator {
             response.put("lix_score", lix);
             try {
                 totalresult.put("data", response);
+                return totalresult.toString();
             } catch (JSONException error) {
                 System.out.println(error);
             }

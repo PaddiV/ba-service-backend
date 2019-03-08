@@ -30,8 +30,8 @@ import com.ibm.watson.developer_cloud.service.security.IamOptions;
 public class ApplicationController extends SpringBootServletInitializer {
 
     //TODO: REMOVE CREDENTIALS BEFORE COMMITTING
-    private static String user = "";
-    private static String password = "";
+    private static String user = "asdf";
+    private static String password = "asdf";
     private static WebThesaurusDatastructure dt;
     // Determines how many keywords Watson should return for given question.
     private static int amount_watson_keywords = 10;
@@ -50,10 +50,11 @@ public class ApplicationController extends SpringBootServletInitializer {
      * @param offset offset for Solr query (used for pagination)
      * @param upper_limit upper limit for Solr query (used for pagination)
      */
+
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/fea")
-    String fea_home(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit, @RequestParam(value = "logged_in_user", defaultValue = "") String logged_in_user, @RequestParam(value = "logged_in_password", defaultValue = "") String logged_in_password) throws IOException, SolrServerException {
-        if (logged_in_user != user || logged_in_password != password) {
+    String fea_home(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit, @RequestParam(value = "user", defaultValue = "") String logged_in_user, @RequestParam(value = "password", defaultValue = "") String password) throws IOException, SolrServerException {
+        if (logged_in_user != user || password != password) {
             return "Incorrect login!";
         }
         //sets the current_question
@@ -212,8 +213,8 @@ public class ApplicationController extends SpringBootServletInitializer {
      */
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/custom_fea")
-    String fea_custom(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit, @RequestParam(value = "keywords", defaultValue = "*") String keywords, @RequestParam(value = "tags", defaultValue = "*") String tags, @RequestParam(value = "logged_in_user", defaultValue = "") String logged_in_user, @RequestParam(value = "logged_in_password", defaultValue = "") String logged_in_password) throws IOException, SolrServerException {
-        if (logged_in_user != user || logged_in_password != password) {
+    String fea_custom(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit, @RequestParam(value = "keywords", defaultValue = "*") String keywords, @RequestParam(value = "tags", defaultValue = "*") String tags, @RequestParam(value = "user", defaultValue = "") String user, @RequestParam(value = "password", defaultValue = "") String password) throws IOException, SolrServerException {
+        if (user != ApplicationController.user || password != ApplicationController.password) {
             return "Incorrect login!";
         }
         int actual_offset;
@@ -303,8 +304,8 @@ public class ApplicationController extends SpringBootServletInitializer {
      */
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/text_check")
-    String text_check(@RequestParam(value = "text", defaultValue = "") String text, @RequestParam(value = "logged_in_user", defaultValue = "") String logged_in_user, @RequestParam(value = "logged_in_password", defaultValue = "") String logged_in_password) throws IOException, SolrServerException {
-        if (logged_in_user != user || logged_in_password != password) {
+    String text_check(@RequestParam(value = "text", defaultValue = "") String text, @RequestParam(value = "user", defaultValue = "") String user, @RequestParam(value = "password", defaultValue = "") String password) throws IOException, SolrServerException {
+        if (user != user || password != password) {
             return "Incorrect login!";
         }
         return TextEvaluator.getEvaluation(text, dt, false);
@@ -315,8 +316,8 @@ public class ApplicationController extends SpringBootServletInitializer {
      */
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/chart_data")
-    String chart_data(@RequestParam(value = "logged_in_user", defaultValue = "") String logged_in_user, @RequestParam(value = "logged_in_password", defaultValue = "") String logged_in_password) {
-        if (logged_in_user != user || logged_in_password != password) {
+    String chart_data(@RequestParam(value = "user", defaultValue = "") String user, @RequestParam(value = "password", defaultValue = "") String password) {
+        if (user != ApplicationController.user || password != ApplicationController.password) {
             return "Incorrect login!";
         }
         return "Hello there! You found a construction site. Congrats!";
@@ -327,8 +328,10 @@ public class ApplicationController extends SpringBootServletInitializer {
      */
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/login")
-    Boolean login(@RequestParam(value = "login_user", defaultValue = "") String login_user, @RequestParam(value = "login_password", defaultValue = "") String login_password) {
-        if (login_user == user && login_password == password) {
+    Boolean login(@RequestParam(value = "user", defaultValue = "") String user, @RequestParam(value = "password", defaultValue = "") String password) {
+        System.out.println(user);
+        System.out.println(password);
+        if (user.equals(ApplicationController.user) && password.equals(ApplicationController.password)) {
             return true;
         }
         return false;

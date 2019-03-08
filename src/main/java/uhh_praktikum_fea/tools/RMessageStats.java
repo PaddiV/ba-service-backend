@@ -5,12 +5,7 @@ import org.jobimtext.api.struct.WebThesaurusDatastructure;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
 
-import java.io.FileReader;
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -21,7 +16,7 @@ import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrDocument;
 
 import org.json.JSONException;
-import org.json.simple.JSONArray;
+
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -35,10 +30,7 @@ public class RMessageStats {
 
     private static WebThesaurusDatastructure dt;
 
-    public static void main(String[] args) throws IOException, SolrServerException, ParseException, JSONException {
-
-        //dt = new WebThesaurusDatastructure("resources/conf_web_deNews_trigram.xml");
-        //dt.connect();
+    public static void main(String[] args) throws IOException, SolrServerException, ParseException {
 
         int start = 0;
         int rows = 3;
@@ -47,12 +39,11 @@ public class RMessageStats {
         dt.connect();
 
         PrintWriter stats = new PrintWriter("R_Message.json");
-        stats.println("{  data : [");
         // Query
         SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
 
         SolrQuery query = new SolrQuery();
-        query.setQuery("*");
+        query.setQuery("R_Message:*");
         query.set("fl", "id,R_Message");
         query.setStart(start);
         query.setRows(rows);
@@ -70,16 +61,17 @@ public class RMessageStats {
 
         for (SolrDocument queryResult : queryResults)
         {
-            org.json.JSONObject obj = new org.json.JSONObject();
             i++;
             String r_message = queryResult.get("R_Message").toString();
-            String answer = TextEvaluator.getEvaluation(r_message, dt, true);
+            String sub = r_message.substring(1, r_message.length()-1);
+            String answer = TextEvaluator.getEvaluation(sub, dt, true);
             JSONObject json = (JSONObject) parser.parse(answer);
 
             result.put(json);
 
             System.out.println(i);
         }
-
+        stats.println(result);
+        stats.close();
     }
 }
