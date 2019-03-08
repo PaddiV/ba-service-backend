@@ -305,10 +305,11 @@ public class ApplicationController extends SpringBootServletInitializer {
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/text_check")
     String text_check(@RequestParam(value = "text", defaultValue = "") String text, @RequestParam(value = "user", defaultValue = "") String user, @RequestParam(value = "password", defaultValue = "") String password) throws IOException, SolrServerException {
+        TextEvaluator evaluator = new TextEvaluator();
         if (user != user || password != password) {
             return "Incorrect login!";
         }
-        return TextEvaluator.getEvaluation(text, dt, false);
+        return evaluator.getEvaluation(text, dt, false);
     }
 
     /**

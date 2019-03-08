@@ -31,7 +31,7 @@ public class TextEvaluator {
     private static double noun_to_verb_ratio_to_match = 1.5;
     private static double noun_to_verb_ratio_to_match_variance = 0.4;
 
-    public static String getEvaluation(String text, DTHelper dt, Boolean returnRawValues) throws IOException, SolrServerException {
+    public  String getEvaluation(String text, DTHelper dt, Boolean returnRawValues) throws IOException, SolrServerException {
         double words_count = 0;
         double long_words_count = 0;
         double nouns_count, verbs_count;
@@ -50,17 +50,16 @@ public class TextEvaluator {
         text = text.replaceAll("\"", "");
 
         // Sentence detection.
-        try (InputStream sentence_model_in = new FileInputStream("de-sent.bin")) {
+        try (InputStream sentence_model_in = getClass().getClassLoader().getResourceAsStream("de-sent.bin")) {
             SentenceModel sentence_model = new SentenceModel(sentence_model_in);
             SentenceDetectorME sentenceDetector = new SentenceDetectorME(sentence_model);
             sentences = sentenceDetector.sentDetect(text);
             // Tokenization per sentence.
-            try (InputStream token_model_in = new FileInputStream("de-token.bin")) {
+            try (InputStream token_model_in = getClass().getClassLoader().getResourceAsStream("de-token.bin")) {
                 TokenizerModel token_model = new TokenizerModel(token_model_in);
                 Tokenizer tokenizer = new TokenizerME(token_model);
                 // Load POS tagger
-                //getClass().getClassLoader().getResourceAsStream("de-pos-maxent.bin");
-                try (InputStream pos_model_in = new FileInputStream("de-pos-maxent.bin")) {
+                try (InputStream pos_model_in = getClass().getClassLoader().getResourceAsStream("de-pos-maxent.bin")) {
                     POSModel model = new POSModel(pos_model_in);
                     POSTaggerME tagger = new POSTaggerME(model);
                     for (String sentence : sentences) {

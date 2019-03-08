@@ -1,6 +1,5 @@
 package uhh_praktikum_fea.webserver;
 
-import org.apache.commons.io.IOUtils;
 import org.jobimtext.api.struct.WebThesaurusDatastructure;
 
 import java.io.BufferedInputStream;
@@ -13,7 +12,7 @@ public class DTHelper {
         this.loadDTconfig(config);
     }
 
-    public void loadDTconfig(String configName) throws java.io.IOException {
+    public void loadDTconfig(String configName) {
         dt = new WebThesaurusDatastructure(new BufferedInputStream(getClass().getClassLoader().getResourceAsStream(configName)));
         dt.connect();
     }

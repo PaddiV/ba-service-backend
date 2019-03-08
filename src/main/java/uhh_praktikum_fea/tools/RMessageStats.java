@@ -59,12 +59,13 @@ public class RMessageStats {
         JSONParser parser = new JSONParser();
 
 
+        TextEvaluator evaluator = new TextEvaluator();
         for (SolrDocument queryResult : queryResults)
         {
             i++;
             String r_message = queryResult.get("R_Message").toString();
             String sub = r_message.substring(1, r_message.length()-1);
-            String answer = TextEvaluator.getEvaluation(sub, dt, true);
+            String answer = evaluator.getEvaluation(sub, dt, true);
             JSONObject json = (JSONObject) parser.parse(answer);
 
             result.put(json);
