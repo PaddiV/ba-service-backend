@@ -34,10 +34,12 @@ import uhh_praktikum_fea.tools.Store;
 @EnableAutoConfiguration
 public class ApplicationController extends SpringBootServletInitializer {
 
-    //TODO: REMOVE CREDENTIALS BEFORE COMMITTING
     private static DTHelper dt;
+    // Used for rudimentary security when deployed.
     private static String stored_user = "asdf";
     private static String stored_password = "asdf";
+    // Used across the project.
+    public static String solr_core_uri = "http://ltdemos:8983/solr/fea-schema-less";
     // Determines how many keywords Watson should return for given question.
     private static int amount_watson_keywords = 10;
     private static int amount_watson_concepts = 10;
@@ -149,7 +151,7 @@ public class ApplicationController extends SpringBootServletInitializer {
             current_concepts_query_string = "*";
         }
 
-        SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
+        SolrClient client = new HttpSolrClient.Builder(solr_core_uri).build();
 
         // Creating a query to search the amount of answers with a score over the cutoff
         SolrQuery query_score = new SolrQuery();
@@ -246,7 +248,7 @@ public class ApplicationController extends SpringBootServletInitializer {
             actual_amount = (upper_boundary - actual_offset + 1);
         }
 
-        SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
+        SolrClient client = new HttpSolrClient.Builder(solr_core_uri).build();
         // Creating a query to search the amount of answers with a score over the cutoff
         SolrQuery query_score = new SolrQuery();
         query_score.setQuery("T_Message:"+ question + " OR Keywords:(" + keywords + ")" + " OR Concepts:(*" + current_concepts_query_string + ")");// + " OR Tags:(" + TAGS + ")");

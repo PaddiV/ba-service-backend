@@ -15,6 +15,7 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
+import uhh_praktikum_fea.webserver.ApplicationController;
 
 import java.io.*;
 import java.util.*;
@@ -26,7 +27,7 @@ public class MostCommonNounListTool {
     private static int amount_nouns_to_store = 100;
 
     public static void main(String[] args) throws IOException, SolrServerException {
-        SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
+        SolrClient client = new HttpSolrClient.Builder(ApplicationController.solr_core_uri).build();
         // Delete old common noun entries in Solr.
         client.deleteByQuery("common_noun:*");
 
@@ -124,7 +125,7 @@ public class MostCommonNounListTool {
     }
 
     public static int getUsage(String word) throws IOException, SolrServerException {
-        SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
+        SolrClient client = new HttpSolrClient.Builder(ApplicationController.solr_core_uri).build();
         SolrQuery query = new SolrQuery();
         query.setQuery("common_noun:" + word);
         QueryResponse response = client.query(query);

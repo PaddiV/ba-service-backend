@@ -22,6 +22,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 
+import uhh_praktikum_fea.webserver.ApplicationController;
 import uhh_praktikum_fea.webserver.DTHelper;
 import uhh_praktikum_fea.webserver.TextEvaluator;
 
@@ -40,7 +41,7 @@ public class RMessageStats {
 
         PrintWriter stats = new PrintWriter("R_Message.json");
         // Query
-        SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
+        SolrClient client = new HttpSolrClient.Builder(ApplicationController.solr_core_uri).build();
 
         SolrQuery query = new SolrQuery();
         query.setQuery("R_Message:*");

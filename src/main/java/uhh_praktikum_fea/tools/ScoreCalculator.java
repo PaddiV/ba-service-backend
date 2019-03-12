@@ -1,4 +1,4 @@
-package uhh_praktikum_fea.webserver;
+package uhh_praktikum_fea.tools;
 
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.request.QueryRequest;
@@ -26,7 +26,7 @@ import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocumentList;
-
+import uhh_praktikum_fea.webserver.ApplicationController;
 
 
 public class ScoreCalculator {
@@ -36,7 +36,7 @@ public class ScoreCalculator {
         Object obj = parser.parse(new FileReader("/informatik2/students/home/7ferrara/Desktop/mietrechtexport1000.json"));
         JSONObject jsonObject = (JSONObject) obj;
         JSONArray data = (JSONArray) jsonObject.get("data");
-        SolrClient client = new HttpSolrClient.Builder("http://ltdemos:8983/solr/fea-schema-less").build();
+        SolrClient client = new HttpSolrClient.Builder(ApplicationController.solr_core_uri).build();
 
         SolrQuery query = new SolrQuery();
 

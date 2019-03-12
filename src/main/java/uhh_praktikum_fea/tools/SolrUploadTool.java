@@ -9,6 +9,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import uhh_praktikum_fea.webserver.ApplicationController;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -17,13 +18,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SolrUploadTool {
-    private static String solr_core_url = "http://ltdemos:8983/solr/fea-schema-less";
     private static String data_json_path = "";
 
 
     public static void main(String[] args) throws FileNotFoundException,
             IOException, ParseException, SolrServerException {
-        SolrClient client = new HttpSolrClient.Builder(solr_core_url).build();
+        SolrClient client = new HttpSolrClient.Builder(ApplicationController.solr_core_uri).build();
 
         JSONParser parser = new JSONParser();
 
