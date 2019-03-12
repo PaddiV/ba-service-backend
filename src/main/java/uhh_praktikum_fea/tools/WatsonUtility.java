@@ -10,14 +10,21 @@ public class WatsonUtility {
     private static int amount_watson_concepts = 10;
     //TODO: REMOVE API KEY BEFORE COMMITTING
     private static String api_key = "";
+    private static String api_version = "2018-11-16";
+    private static String ibm_watson_endpoint = "https://gateway-lon.watsonplatform.net/natural-language-understanding/api/";
 
+    /**
+     * Accepts a text and returns the response of the IBM Watson API including categories, sentiment, keywords and concepts.
+     *
+     * @param text_to_analyze text to be analyzed
+     */
     public static AnalysisResults getWatsonRequestData(String text_to_analyze) {
         IamOptions options = new IamOptions.Builder()
                 .apiKey(api_key)
                 .build();
 
-        NaturalLanguageUnderstanding naturalLanguageUnderstanding = new NaturalLanguageUnderstanding("2018-11-16", options);
-        naturalLanguageUnderstanding.setEndPoint("https://gateway-lon.watsonplatform.net/natural-language-understanding/api/");
+        NaturalLanguageUnderstanding naturalLanguageUnderstanding = new NaturalLanguageUnderstanding(api_version, options);
+        naturalLanguageUnderstanding.setEndPoint(ibm_watson_endpoint);
 
         EntitiesOptions entities = new EntitiesOptions.Builder()
                 .build();

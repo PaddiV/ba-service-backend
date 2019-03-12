@@ -20,13 +20,10 @@ import java.util.List;
 public class SolrUploadTool {
     private static String data_json_path = "";
 
-
     public static void main(String[] args) throws FileNotFoundException,
             IOException, ParseException, SolrServerException {
         SolrClient client = new HttpSolrClient.Builder(ApplicationController.solr_core_uri).build();
-
         JSONParser parser = new JSONParser();
-
         Object input_object = parser.parse(new FileReader(data_json_path));
         JSONObject input_object_json = (JSONObject) input_object;
         JSONArray input_data = (JSONArray) input_object_json.get("data");
@@ -45,7 +42,6 @@ public class SolrUploadTool {
             Long price = (Long) json.get("T_PRice");
             Long recommendation = (Long) json.get("empfehlungen");
             String tags = (String) json.get("tags");
-
 
             int t_length = t_message.replace(" ","").replace("\n","").replace("\r","").length();
             int r_length = r_message.replace(" ","").replace("\n","").replace("\r","").length();
@@ -122,8 +118,6 @@ public class SolrUploadTool {
             doc.setField("T_Length", t_length );
             doc.setField("R_Length", r_length);
 
-            //System.out.println(doc);
-            // Uncomment the following lines for actual uploading (deactivated for safety reasons).
             client.add(doc);
         }
         client.commit();

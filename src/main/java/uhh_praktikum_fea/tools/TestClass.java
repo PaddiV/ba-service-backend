@@ -1,8 +1,5 @@
 package uhh_praktikum_fea.tools;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-
 import net.sf.corn.httpclient.HttpClient;
 import net.sf.corn.httpclient.HttpResponse;
 import org.json.simple.JSONArray;
@@ -14,10 +11,10 @@ import java.util.*;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
-public class Testclass {
+public class TestClass {
     public static void main(String[] args) {
 
-        //creating a hash-map with the test-questions
+        // Create hash-map with the test questions.
         Map<String, Integer> fragen = new HashMap<String, Integer>();
 
         fragen.put("Ich habe gewerblich Räume gemietet und hatte zuvor Kontakt mit einem Makler. Dieser hat mir zwar andere Räume im gleichen Gebäude gezeigt und mich mit dem Vermieter in Kontakt gebracht, von den später gemieteten Räumen habe ich jedoch direkt vom Vermieter erfahren. Ich kannte den Vermieter bereits vorher aus dem Internet. Als der Makler nun Provision verlangt hat, habe ich nicht gezahlt und einem entsprechenden Mahnbescheid widersprochen. Meine Frage ist, ob ich dem Makler nach dieser Schilderung Provision zahlen muss." , 322593);
@@ -54,8 +51,7 @@ public class Testclass {
 
         try {
             for (Map.Entry<String, Integer> entry : fragen.entrySet()) {
-
-                // searching for results in "T_Message" for every question
+                // Search for results in "T_Message" of every question.
                 HttpClient client = new HttpClient(new URI("http://localhost:8080/fea?question=" + URLEncoder.encode( entry.getKey(), "UTF-8") + "&offset=0&upper_limit=999&user=asdf&password=asdf"));
                 HttpResponse response = client.sendData(HttpClient.HTTP_METHOD.GET);
                 String jsonString = response.getData();
@@ -64,16 +60,13 @@ public class Testclass {
                 JSONObject jsonObject = (JSONObject) obj;
                 JSONArray data = (JSONArray) jsonObject.get("data");
 
-                //count in witch place the id of the test-question equals the original question
+                // Count in which place the id of the test question equals the original question.
                 int counter = 1;
                 for (Object o : data) {
-
-                   JSONObject jsonObject1 = (JSONObject) o;
-                   long id = Long.parseLong((String) jsonObject1.get("id"));
-
+                    JSONObject jsonObject1 = (JSONObject) o;
+                    long id = Long.parseLong((String) jsonObject1.get("id"));
                     if (id == (long) entry.getValue()) {
-
-                        //print the place and the id of the question
+                        // Print the position and the id of the question.
                         System.out.println(counter);
                         System.out.println(id);
                     }

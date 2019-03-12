@@ -2,7 +2,6 @@ package uhh_praktikum_fea.webserver;
 
 
 import org.json.JSONException;
-import org.jobimtext.api.struct.WebThesaurusDatastructure;
 import org.json.simple.parser.ParseException;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -11,7 +10,6 @@ import org.springframework.boot.context.web.SpringBootServletInitializer;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,6 +43,8 @@ public class ApplicationController extends SpringBootServletInitializer {
     private static int amount_watson_concepts = 10;
     //TODO: REMOVE API KEY BEFORE COMMITTING
     private static String api_key = "";
+    private static String api_version = "2018-11-16";
+    private static String ibm_watson_endpoint = "https://gateway-lon.watsonplatform.net/natural-language-understanding/api/";
     // Holds the concepts of the question received by the last '/fea' request to work on when changing filters with 'custom_fea'.
     private String current_concepts_query_string = "";
     // Is the cutoff depending of the score
@@ -57,25 +57,23 @@ public class ApplicationController extends SpringBootServletInitializer {
      * @param offset offset for Solr query (used for pagination)
      * @param upper_limit upper limit for Solr query (used for pagination)
      */
-
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/fea")
     String fea_home(@RequestParam(value = "question", defaultValue = "") String question, @RequestParam(value = "offset", defaultValue = "0") String offset, @RequestParam(value = "upper_limit", defaultValue = "0") String upper_limit, @RequestParam(value = "user", defaultValue = "") String user, @RequestParam(value = "password", defaultValue = "") String password) throws IOException, SolrServerException {
         if (!(user.equals( stored_user ) && password.equals( stored_password))) {
             return "Incorrect login!";
         }
-        //sets the current_question
+        // Sets the current_question.
         question = question.replace(":", " ");
-        // erases the saved concepts
+        // Erases the saved concepts.
         current_concepts_query_string = "";
-        // calculate the cutoff depending of the question-length
+        // Calculate the cutoff depending of the question length.
         score_cutoff = (float)(question.length() * 0.05);
-
         int actual_offset;
         int actual_amount;
         int upper_boundary;
 
-        //catching false values
+        // Catching false values.
         try {
             actual_offset = Integer.parseInt(offset);
         } catch(NumberFormatException e) {
@@ -100,8 +98,8 @@ public class ApplicationController extends SpringBootServletInitializer {
                 .apiKey(api_key)
                 .build();
 
-        NaturalLanguageUnderstanding naturalLanguageUnderstanding = new NaturalLanguageUnderstanding("2018-11-16", options);
-        naturalLanguageUnderstanding.setEndPoint("https://gateway-lon.watsonplatform.net/natural-language-understanding/api/");
+        NaturalLanguageUnderstanding naturalLanguageUnderstanding = new NaturalLanguageUnderstanding(api_version, options);
+        naturalLanguageUnderstanding.setEndPoint(ibm_watson_endpoint);
 
         KeywordsOptions keywords= new KeywordsOptions.Builder()
                 .limit(amount_watson_keywords)
@@ -115,7 +113,6 @@ public class ApplicationController extends SpringBootServletInitializer {
                 .keywords(keywords)
                 .concepts(concepts)
                 .build();
-
 
         AnalyzeOptions parameters = new AnalyzeOptions.Builder()
                 .text(question)
@@ -153,7 +150,7 @@ public class ApplicationController extends SpringBootServletInitializer {
 
         SolrClient client = new HttpSolrClient.Builder(solr_core_uri).build();
 
-        // Creating a query to search the amount of answers with a score over the cutoff
+        // Create a query to search the amount of answers with a score above the cutoff.
         SolrQuery query_score = new SolrQuery();
         query_score.setQuery("T_Message:"+ question + " OR Keywords:(" + keywords_query_string + ")" + " OR Concepts:(" + current_concepts_query_string + ")");// + " OR Tags:(" + TAGS + ")");
         query_score.set("fl", "id, score");
@@ -165,7 +162,7 @@ public class ApplicationController extends SpringBootServletInitializer {
         int counter = 0;
         for (SolrDocument query_scoreResult : query_scoreResults){
             Object score = query_scoreResult.get("score");
-            if ((float) score < score_cutoff){ break;}
+            if ((float) score < score_cutoff){ break; }
             counter++;
         }
 
@@ -181,7 +178,7 @@ public class ApplicationController extends SpringBootServletInitializer {
         SolrDocumentList queryResults = response.getResults();
 
         for (SolrDocument queryResult: queryResults) {
-            //adding the results with score over the cutoff to the total-result
+            // Add the results with a score above the cutoff to the total result.
             org.json.JSONObject obj = new org.json.JSONObject();
             if ((float)queryResult.get("score") < score_cutoff){break;}
             try {
@@ -196,7 +193,7 @@ public class ApplicationController extends SpringBootServletInitializer {
             }
             result.put(obj);
         }
-        // adding count, keywords , concepts to the result
+        // Add count, keywords, concepts to the result.
         org.json.JSONObject totalresult = new org.json.JSONObject();
         try {
             totalresult.put("results_count", counter);
@@ -228,7 +225,7 @@ public class ApplicationController extends SpringBootServletInitializer {
         int actual_amount;
         int upper_boundary;
 
-        //catching false values
+        // Catch false values.
         try {
             actual_offset = Integer.parseInt(offset);
         } catch(NumberFormatException e) {
@@ -249,7 +246,7 @@ public class ApplicationController extends SpringBootServletInitializer {
         }
 
         SolrClient client = new HttpSolrClient.Builder(solr_core_uri).build();
-        // Creating a query to search the amount of answers with a score over the cutoff
+        // Create a query to search the amount of answers with a score above the cutoff.
         SolrQuery query_score = new SolrQuery();
         query_score.setQuery("T_Message:"+ question + " OR Keywords:(" + keywords + ")" + " OR Concepts:(*" + current_concepts_query_string + ")");// + " OR Tags:(" + TAGS + ")");
         query_score.set("fl", "id, score");
@@ -267,7 +264,7 @@ public class ApplicationController extends SpringBootServletInitializer {
             counter++;
         }
 
-        // Creating the query
+        // Create the query.
         SolrQuery query = new SolrQuery();
         query.setQuery("T_Message:"+ question + " OR Keywords:(" + keywords + ")" + " OR Concepts:(*" + current_concepts_query_string + ")");// + " OR Tags:(" + TAGS + ")");
         query.set("fl", "id, T_Date, T_Subject, T_Message, R_Message, score");
@@ -278,7 +275,7 @@ public class ApplicationController extends SpringBootServletInitializer {
         QueryResponse response = client.query(query);
         SolrDocumentList queryResults = response.getResults();
         for (SolrDocument queryResult: queryResults) {
-            //adding the results with score over the cutoff to the total-result
+            // Add the results with score above the cutoff to the total result.
             org.json.JSONObject obj = new org.json.JSONObject();
             if ((float)queryResult.get("score") < score_cutoff){break;}
             try {
@@ -294,7 +291,7 @@ public class ApplicationController extends SpringBootServletInitializer {
             result.put(obj);
         }
         org.json.JSONObject totalresult = new org.json.JSONObject();
-        // adding count to the result
+        // Add count to the result.
         try {
             totalresult.put("results_count", counter);
             totalresult.put("data", result);
@@ -346,23 +343,17 @@ public class ApplicationController extends SpringBootServletInitializer {
     }
 
     /**
-     *Stores the answer in Solr
+     * Stores a new answer in Solr.
      */
     @CrossOrigin(origins = "*", allowedHeaders = "*", methods = RequestMethod.GET)
     @RequestMapping("/store")
     Boolean store(@RequestParam(value = "question", defaultValue = "No Data") String question, @RequestParam(value = "answer", defaultValue = "No Data") String answer, @RequestParam(value = "keywords", defaultValue = "*") String keywords, @RequestParam(value = "user", defaultValue = "") String user, @RequestParam(value = "password", defaultValue = "") String password) throws IOException, SolrServerException {
-
         if (!(user.equals(stored_user) && password.equals(stored_password))) {
             return false;
         }
-                 Store.storing(question, answer);
-
+        Store.storing(question, answer);
         return true;
     }
-
-
-
-
 
     /**
      * Runs the RESTful server.

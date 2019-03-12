@@ -5,7 +5,6 @@ import org.jobimtext.api.struct.WebThesaurusDatastructure;
 import java.io.BufferedInputStream;
 
 public class DTHelper {
-
     WebThesaurusDatastructure dt;
 
     public DTHelper(String config) throws java.io.IOException {

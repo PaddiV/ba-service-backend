@@ -8,12 +8,10 @@ import opennlp.tools.tokenize.Tokenizer;
 import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.tokenize.TokenizerModel;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.jobimtext.api.struct.WebThesaurusDatastructure;
 import org.json.simple.JSONObject;
 import uhh_praktikum_fea.tools.MostCommonNounListTool;
 
 import org.json.JSONException;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,6 +29,13 @@ public class TextEvaluator {
     private static double noun_to_verb_ratio_to_match = 1.5;
     private static double noun_to_verb_ratio_to_match_variance = 0.4;
 
+    /**
+     * Accepts a text and returns understandability ratings based on the texts properties.
+     *
+     * @param text text to be evaluated
+     * @param dt DTHelper
+     * @param returnRawValues set false for Ratings, true for numeric values
+     */
     public  String getEvaluation(String text, DTHelper dt, Boolean returnRawValues) throws IOException, SolrServerException {
         double words_count = 0;
         double long_words_count = 0;

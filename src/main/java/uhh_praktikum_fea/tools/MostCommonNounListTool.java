@@ -48,7 +48,7 @@ public class MostCommonNounListTool {
         List<String> nouns_tags = new ArrayList<String>();
         String sentences[];
         // Tokenizer does not recognize punctuation marks, if no space is between them and the next word.
-        // Therefore we place an additional space after each special character.
+        // Therefore an additional space is placed after each special character.
         answers = answers.replaceAll("(?<=[]\\[+&|!(){}\\[\\]^\"„~*?:/-[.][,]])", " ");
         // Matches when first char is a capital letter.
         Pattern non_noun_filter_pattern = Pattern.compile("^[A-ZÄÖÜ]");
@@ -108,7 +108,7 @@ public class MostCommonNounListTool {
             // Sort to get most commonly used words first.
             noun_usages = MapUtility.sortByValue(noun_usages);
 
-            // Upload to Solr.
+            // Upload results to Solr.
             SolrInputDocument doc = new SolrInputDocument();
             int i = 0;
             Iterator it = noun_usages.entrySet().iterator();
