@@ -26,6 +26,9 @@ public class MostCommonNounListTool {
     // Determines the number of nouns to be stored. The x most common nouns will be stored.
     private static int amount_nouns_to_store = 100;
 
+    /**
+     * Analyzes all answers currently stored in Solr and stores the x (amount_nouns_to_store) most common nouns among those for quicker text evaluations.
+     */
     public static void main(String[] args) throws IOException, SolrServerException {
         SolrClient client = new HttpSolrClient.Builder(ApplicationController.solr_core_uri).build();
         // Delete old common noun entries in Solr.

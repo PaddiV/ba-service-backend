@@ -11,7 +11,14 @@ import java.util.Arrays;
 
 public class Stats {
 
-    public String charts (String x_achse, String y_achse) throws FileNotFoundException, IOException, ParseException {
+    /**
+     * Accepts two values indicating which kind of data shall be shown for each axis.
+     * Returns the corresponding data for the chart.
+     *
+     * @param x_axis kind of data to be shown on x-axis
+     * @param y_axis kind of data to be shown on y-axis
+     */
+    public String charts (String x_axis, String y_axis) throws FileNotFoundException, IOException, ParseException {
         InputStream messages = getClass().getClassLoader().getResourceAsStream("R_Message.txt");
         InputStreamReader reader = new  InputStreamReader (messages);
         BufferedReader buffer = new BufferedReader(reader);
@@ -25,8 +32,8 @@ public class Stats {
         while ((s = buffer.readLine()) != null) {
             JSONObject object = (JSONObject) parser.parse(s);
 
-            x_list[counter] = toDouble(object, x_achse);
-            y_list[counter] = toDouble(object, y_achse);
+            x_list[counter] = toDouble(object, x_axis);
+            y_list[counter] = toDouble(object, y_axis);
             counter++;
         }
 

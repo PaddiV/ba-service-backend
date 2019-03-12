@@ -20,6 +20,9 @@ import java.util.List;
 public class SolrUploadTool {
     private static String data_json_path = "";
 
+    /**
+     * Loads data from file into Solr.
+     */
     public static void main(String[] args) throws FileNotFoundException,
             IOException, ParseException, SolrServerException {
         SolrClient client = new HttpSolrClient.Builder(ApplicationController.solr_core_uri).build();

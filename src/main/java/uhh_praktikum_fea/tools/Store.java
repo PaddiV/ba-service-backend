@@ -16,8 +16,14 @@ import java.util.Date;
 import java.util.List;
 
 public class Store {
-    public static void storing (String question, String answer) throws IOException, SolrServerException {
 
+    /**
+     * Stores a new question/anwer pair in Solr.
+     *
+     * @param question question to be stored
+     * @param answer answer to be stored
+     */
+    public static void storing (String question, String answer) throws IOException, SolrServerException {
         SolrClient client = new HttpSolrClient.Builder(ApplicationController.solr_core_uri).build();
         SolrInputDocument doc = new SolrInputDocument();
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");

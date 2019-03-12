@@ -16,6 +16,10 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class TagsGetter {
+
+    /**
+     * Stores all occurring tags from the Solr index in a file.
+     */
     public static void main(String[] args) throws IOException, SolrServerException {
         SolrClient client = new HttpSolrClient.Builder(ApplicationController.solr_core_uri).build();
         SolrQuery query = new SolrQuery();
