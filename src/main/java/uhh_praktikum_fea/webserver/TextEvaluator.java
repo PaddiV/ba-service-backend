@@ -33,10 +33,10 @@ public class TextEvaluator {
      * Accepts a text and returns understandability ratings based on the texts properties.
      *
      * @param text text to be evaluated
-     * @param dt DTHelper
      * @param returnRawValues set false for Ratings, true for numeric values
      */
-    public  String getEvaluation(String text, DTHelper dt, Boolean returnRawValues) throws IOException, SolrServerException {
+    public  String getEvaluation(String text, Boolean returnRawValues) throws IOException, SolrServerException {
+        DTHelper dt = new DTHelper("conf_web_deNews_trigram.xml");
         double words_count = 0;
         double long_words_count = 0;
         double nouns_count, verbs_count;

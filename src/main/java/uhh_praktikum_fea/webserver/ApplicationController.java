@@ -34,10 +34,11 @@ public class ApplicationController extends SpringBootServletInitializer {
 
     private static DTHelper dt;
     // Used for rudimentary security when deployed.
-    private static String stored_user = "asdf";
-    private static String stored_password = "asdf";
+    private static String stored_user = "user123";
+    private static String stored_password = "user123";
     // Used across the project.
     public static String solr_core_uri = "http://ltdemos:8983/solr/fea-schema-less";
+
     // Determines how many keywords Watson should return for given question.
     private static int amount_watson_keywords = 10;
     private static int amount_watson_concepts = 10;
@@ -313,7 +314,7 @@ public class ApplicationController extends SpringBootServletInitializer {
         if  (!(user.equals( stored_user ) && password.equals( stored_password))) {
             return "Incorrect login!";
         }
-        return evaluator.getEvaluation(text, dt, false);
+        return evaluator.getEvaluation(text, false);
     }
 
     /**

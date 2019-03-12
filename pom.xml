@@ -6,7 +6,7 @@
 
     <groupId>uhh_lt</groupId>
     <artifactId>fea-anwalt</artifactId>
-    <version>v1.0</version>
+    <version>v7.5</version>
 
     <name>Basic Webserver</name>
     <description>Basic bootstrap webserver with REST support</description>
