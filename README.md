@@ -47,3 +47,4 @@ This project is written in Java (JDK 8) and uses the following technologies:
 - Run the ApplicationController
 - Default port is 8080 (for deployment port can be edited in /resources/application.properties)
 - Run the frontend (with adjusted port for backend access) and use it
+- To speed up the text check you can make use of the MostCommonNounListTool (Will store data in Solr, so beware if you do not want that.)
